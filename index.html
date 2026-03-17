@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-translate="meta.title">CasaJá — A tua primeira casa começa aqui</title>
+  <meta name="description" data-translate="meta.description" content="Plataforma interativa para jovens adultos entenderem, planearem e navegarem com confiança o processo de compra da primeira casa em Portugal." />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body data-lang="pt" data-section="hero">
+
+  <!-- ===================== ONBOARDING HINT ===================== -->
+  <div class="onboarding-overlay" id="onboarding" role="dialog" aria-modal="true" aria-label="Bem-vindo">
+    <div class="onboarding-card glass">
+      <span class="onboarding-close" id="onboarding-close" role="button" aria-label="Fechar">&#10005;</span>
+      <div class="onboarding-icon">🏡</div>
+      <h2 class="onboarding-title" data-translate="onboarding.title">Bem-vindo ao CasaJá</h2>
+      <p class="onboarding-text" data-translate="onboarding.text">Esta plataforma foi criada para te guiar, passo a passo, no processo de comprar a tua primeira casa — sem jargão, sem stress.</p>
+      <ul class="onboarding-tips">
+        <li data-translate="onboarding.tip1">💡 Testa os simuladores para explorar os teus números</li>
+        <li data-translate="onboarding.tip2">📊 Vê os dados reais de 113 jovens como tu</li>
+        <li data-translate="onboarding.tip3">🗺️ Segue o guia de jornada para entender o processo</li>
+      </ul>
+      <button class="btn btn-primary btn-full" id="onboarding-start" data-translate="onboarding.cta">Começar a explorar</button>
+    </div>
+  </div>
+
+  <!-- ===================== CHATBOT ===================== -->
+  <div class="chatbot-container" id="chatbot-container">
+    <div class="chatbot-panel glass" id="chatbot-panel" aria-hidden="true">
+      <div class="chatbot-header">
+        <div class="chatbot-avatar">🤖</div>
+        <div>
+          <div class="chatbot-name" data-translate="chatbot.name">AssistenteCasa</div>
+          <div class="chatbot-status" data-translate="chatbot.status">Online • Responde em segundos</div>
+        </div>
+        <button class="chatbot-close-btn" id="chatbot-close" aria-label="Fechar chat">&#10005;</button>
+      </div>
+      <div class="chatbot-messages" id="chatbot-messages">
+        <div class="chat-msg bot">
+          <span data-translate="chatbot.greeting">Olá! Sou o teu assistente para a primeira casa. O que te preocupa mais?</span>
+        </div>
+      </div>
+      <div class="chatbot-quick" id="chatbot-quick">
+        <button class="quick-btn" data-question="financing" data-translate="chatbot.q1">Financiamento</button>
+        <button class="quick-btn" data-question="imt" data-translate="chatbot.q2">O que é o IMT?</button>
+        <button class="quick-btn" data-question="downpayment" data-translate="chatbot.q3">Entrada mínima</button>
+        <button class="quick-btn" data-question="support" data-translate="chatbot.q4">Apoios estado</button>
+      </div>
+      <div class="chatbot-input-row">
+        <input type="text" class="chatbot-input" id="chatbot-input" placeholder="Escreve a tua pergunta..." data-translate-placeholder="chatbot.placeholder" />
+        <button class="chatbot-send" id="chatbot-send" aria-label="Enviar">&#10148;</button>
+      </div>
+    </div>
+    <button class="chatbot-fab" id="chatbot-fab" aria-label="Abrir assistente">
+      <span class="chatbot-fab-icon">💬</span>
+      <span class="chatbot-fab-dot"></span>
+    </button>
+  </div>
+
+  <!-- ===================== NAVBAR ===================== -->
+  <nav class="navbar" id="navbar" role="navigation" aria-label="Navegação principal">
+    <div class="navbar-inner">
+      <a href="#hero" class="navbar-logo" aria-label="CasaJá Home">
+        <span class="logo-icon">🏠</span>
+        <span class="logo-text">Casa<strong>Já</strong></span>
+      </a>
+
+      <button class="navbar-hamburger" id="navbar-hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navbar-links">
+        <span></span><span></span><span></span>
+      </button>
+
+      <ul class="navbar-links" id="navbar-links" role="list">
+        <li><a href="#hero" class="nav-link active" data-translate="nav.home">Início</a></li>
+        <li><a href="#simuladores" class="nav-link" data-translate="nav.simuladores">Simuladores</a></li>
+        <li><a href="#dados" class="nav-link" data-translate="nav.dados">Dados</a></li>
+        <li><a href="#aprender" class="nav-link" data-translate="nav.aprender">Aprender</a></li>
+        <li><a href="#faq" class="nav-link" data-translate="nav.faq">FAQ</a></li>
+        <li><a href="#projeto" class="nav-link" data-translate="nav.projeto">Projeto</a></li>
+        <li><a href="#contacto" class="nav-link" data-translate="nav.contacto">Contacto</a></li>
+      </ul>
+
+      <div class="navbar-actions">
+        <button class="lang-toggle" id="lang-toggle" aria-label="Toggle language" title="Switch language">
+          <span class="lang-label" id="lang-current">PT</span>
+          <span class="lang-divider">|</span>
+          <span class="lang-other" id="lang-other">EN</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===================== SECTION: HERO ===================== -->
+  <section class="section section-hero" id="hero" data-section-color="hero">
+    <div class="hero-bg-shapes" aria-hidden="true">
+      <div class="hero-circle c1"></div>
+      <div class="hero-circle c2"></div>
+      <div class="hero-circle c3"></div>
+    </div>
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge animate-fade-up" data-delay="0">
+          <span>🇵🇹</span>
+          <span data-translate="hero.badge">Criado para jovens em Portugal</span>
+        </div>
+        <h1 class="hero-title animate-fade-up" data-delay="100">
+          <span data-translate="hero.title1">A tua primeira casa</span><br/>
+          <span class="hero-title-accent" data-translate="hero.title2">começa aqui.</span>
+        </h1>
+        <p class="hero-subtitle animate-fade-up" data-delay="200" data-translate="hero.subtitle">
+          Sem jargão. Sem confusão. Com dados reais, ferramentas interativas e um guia claro — para que possas planear o teu futuro com confiança.
+        </p>
+        <div class="hero-ctas animate-fade-up" data-delay="300">
+          <a href="#quiz" class="btn btn-primary btn-lg" data-translate="hero.cta1">Descobrir o meu perfil</a>
+          <a href="#simuladores" class="btn btn-ghost btn-lg" data-translate="hero.cta2">Explorar simuladores</a>
+        </div>
+        <div class="hero-stats animate-fade-up" data-delay="400">
+          <div class="hero-stat">
+            <span class="hero-stat-num counter" data-target="113">0</span>
+            <span class="hero-stat-label" data-translate="hero.stat1">respostas reais</span>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num counter" data-target="80">0</span><span class="hero-stat-num">%</span>
+            <span class="hero-stat-label" data-translate="hero.stat2">acham o processo complexo</span>
+          </div>
+          <div class="hero-stat-divider"></div>
+          <div class="hero-stat">
+            <span class="hero-stat-num counter" data-target="4">0</span>
+            <span class="hero-stat-label" data-translate="hero.stat3">simuladores interativos</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLACEHOLDER: Hero image/video -->
+      <div class="hero-visual animate-scale-in" data-delay="200">
+        <div class="hero-image-placeholder">
+          <!-- PLACEHOLDER: Replace with your hero image or video -->
+          <div class="placeholder-content">
+            <div class="placeholder-icon">🏡</div>
+            <p class="placeholder-label" data-translate="hero.imgPlaceholder">Imagem/vídeo hero aqui</p>
+            <p class="placeholder-hint">Sugerido: jovem adulto a olhar para um apartamento, luz natural, estilo editorial</p>
+          </div>
+          <div class="hero-card-float glass card-float-1">
+            <div class="float-icon">📈</div>
+            <div><div class="float-label" data-translate="hero.floatLabel1">Euribor 6M</div><div class="float-val">3.2%</div></div>
+          </div>
+          <div class="hero-card-float glass card-float-2">
+            <div class="float-icon">🏦</div>
+            <div><div class="float-label" data-translate="hero.floatLabel2">Entrada mínima</div><div class="float-val">10–20%</div></div>
+          </div>
+          <div class="hero-card-float glass card-float-3">
+            <div class="float-icon">⏱️</div>
+            <div><div class="float-label" data-translate="hero.floatLabel3">Prazo típico</div><div class="float-val">30–40 anos</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Journey Quick Overview -->
+    <div class="journey-bar animate-fade-up" data-delay="500">
+      <div class="container">
+        <div class="journey-steps">
+          <div class="journey-step">
+            <div class="journey-step-num">01</div>
+            <div class="journey-step-text" data-translate="hero.journey1">Perfil &amp; objetivos</div>
+          </div>
+          <div class="journey-arrow">→</div>
+          <div class="journey-step">
+            <div class="journey-step-num">02</div>
+            <div class="journey-step-text" data-translate="hero.journey2">Poupança &amp; finanças</div>
+          </div>
+          <div class="journey-arrow">→</div>
+          <div class="journey-step">
+            <div class="journey-step-num">03</div>
+            <div class="journey-step-text" data-translate="hero.journey3">Crédito habitação</div>
+          </div>
+          <div class="journey-arrow">→</div>
+          <div class="journey-step">
+            <div class="journey-step-num">04</div>
+            <div class="journey-step-text" data-translate="hero.journey4">Procura de imóvel</div>
+          </div>
+          <div class="journey-arrow">→</div>
+          <div class="journey-step">
+            <div class="journey-step-num">05</div>
+            <div class="journey-step-text" data-translate="hero.journey5">Escritura &amp; chaves</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: PERSONALISATION QUIZ ===================== -->
+  <section class="section section-quiz" id="quiz" data-section-color="quiz">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="quiz.tag">O teu perfil</span>
+        <h2 class="section-title" data-translate="quiz.title">Qual é a tua situação?</h2>
+        <p class="section-subtitle" data-translate="quiz.subtitle">Responde a 3 perguntas rápidas para receberes insights personalizados sobre o teu caminho para a primeira casa.</p>
+      </div>
+
+      <div class="quiz-container reveal">
+        <div class="quiz-progress-bar">
+          <div class="quiz-progress-fill" id="quiz-progress-fill" style="width: 33%"></div>
+        </div>
+        <div class="quiz-step-indicator">
+          <span class="quiz-step-text" id="quiz-step-text" data-translate="quiz.step">Passo 1 de 3</span>
+        </div>
+
+        <!-- Step 1 -->
+        <div class="quiz-step active" id="quiz-step-1">
+          <h3 class="quiz-question" data-translate="quiz.q1">Qual é o teu rendimento mensal líquido?</h3>
+          <div class="quiz-options quiz-options-grid">
+            <button class="quiz-option" data-value="under1000" data-translate="quiz.q1a1">Menos de €1.000</button>
+            <button class="quiz-option" data-value="1000-1500" data-translate="quiz.q1a2">€1.000 – €1.500</button>
+            <button class="quiz-option" data-value="1500-2500" data-translate="quiz.q1a3">€1.500 – €2.500</button>
+            <button class="quiz-option" data-value="over2500" data-translate="quiz.q1a4">Mais de €2.500</button>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="quiz-step" id="quiz-step-2">
+          <h3 class="quiz-question" data-translate="quiz.q2">Quando planeas comprar casa?</h3>
+          <div class="quiz-options quiz-options-grid">
+            <button class="quiz-option" data-value="1-2" data-translate="quiz.q2a1">1–2 anos</button>
+            <button class="quiz-option" data-value="3-5" data-translate="quiz.q2a2">3–5 anos</button>
+            <button class="quiz-option" data-value="5-10" data-translate="quiz.q2a3">5–10 anos</button>
+            <button class="quiz-option" data-value="unsure" data-translate="quiz.q2a4">Não sei ainda</button>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="quiz-step" id="quiz-step-3">
+          <h3 class="quiz-question" data-translate="quiz.q3">Qual é o teu maior obstáculo?</h3>
+          <div class="quiz-options quiz-options-grid">
+            <button class="quiz-option" data-value="savings" data-translate="quiz.q3a1">Poupar para a entrada</button>
+            <button class="quiz-option" data-value="income" data-translate="quiz.q3a2">O salário não chega</button>
+            <button class="quiz-option" data-value="knowledge" data-translate="quiz.q3a3">Não sei por onde começar</button>
+            <button class="quiz-option" data-value="complexity" data-translate="quiz.q3a4">O processo é muito complexo</button>
+          </div>
+        </div>
+
+        <!-- Quiz Result -->
+        <div class="quiz-result glass" id="quiz-result" style="display:none;">
+          <div class="result-icon" id="result-icon">🎯</div>
+          <h3 class="result-title" id="result-title" data-translate="quiz.resultTitle">O teu perfil</h3>
+          <p class="result-desc" id="result-desc"></p>
+          <div class="result-insights" id="result-insights"></div>
+          <div class="result-actions">
+            <a href="#simuladores" class="btn btn-primary" data-translate="quiz.resultCta1">Testar os simuladores</a>
+            <button class="btn btn-ghost" id="quiz-restart" data-translate="quiz.resultCta2">Recomeçar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: DADOS (Survey Data) ===================== -->
+  <section class="section section-dados" id="dados" data-section-color="dados">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="dados.tag">113 respostas reais</span>
+        <h2 class="section-title" data-translate="dados.title">Os dados mostram a realidade</h2>
+        <p class="section-subtitle" data-translate="dados.subtitle">Não és o único. Os resultados do nosso inquérito mostram que a maioria dos jovens adultos em Portugal partilha das tuas preocupações.</p>
+      </div>
+
+      <!-- Big Stats -->
+      <div class="stats-grid reveal">
+        <div class="stat-card glass">
+          <div class="stat-number"><span class="counter" data-target="70">0</span>%</div>
+          <div class="stat-label" data-translate="dados.stat1.label">não acredita conseguir comprar nos próximos 5 anos</div>
+          <div class="stat-insight" data-translate="dados.stat1.insight">👥 70 em cada 100 pessoas como tu</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-number"><span class="counter" data-target="65">0</span>%</div>
+          <div class="stat-label" data-translate="dados.stat2.label">identifica dificuldade financeira como principal obstáculo</div>
+          <div class="stat-insight" data-translate="dados.stat2.insight">💸 O principal bloqueio é o dinheiro</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-number"><span class="counter" data-target="83">0</span>%</div>
+          <div class="stat-label" data-translate="dados.stat3.label">acha o processo de compra complexo ou muito complexo</div>
+          <div class="stat-insight" data-translate="dados.stat3.insight">🧩 A burocracia assusta a maioria</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="stat-number"><span class="counter" data-target="50">0</span>%</div>
+          <div class="stat-label" data-translate="dados.stat4.label">desconhece os apoios governamentais disponíveis</div>
+          <div class="stat-insight" data-translate="dados.stat4.insight">🏛️ Apoios existem, mas pouco divulgados</div>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="charts-grid reveal">
+        <!-- Chart 1: When plan to buy -->
+        <div class="chart-card glass">
+          <h3 class="chart-title" data-translate="dados.chart1.title">Quando planeiam comprar casa?</h3>
+          <p class="chart-subtitle" data-translate="dados.chart1.sub">113 jovens adultos responderam</p>
+          <div class="chart-container">
+            <canvas id="chart-when" aria-label="Gráfico: quando planeiam comprar casa"></canvas>
+          </div>
+          <div class="chart-insight glass-light" data-translate="dados.chart1.insight">
+            📌 A maioria planeia comprar a mais de 5 anos — ou não sabe quando.
+          </div>
+        </div>
+
+        <!-- Chart 2: Main obstacles -->
+        <div class="chart-card glass">
+          <h3 class="chart-title" data-translate="dados.chart2.title">Qual o principal obstáculo?</h3>
+          <p class="chart-subtitle" data-translate="dados.chart2.sub">Obstáculo mais referido pelos inquiridos</p>
+          <div class="chart-container">
+            <canvas id="chart-obstacles" aria-label="Gráfico: principais obstáculos"></canvas>
+          </div>
+          <div class="chart-insight glass-light" data-translate="dados.chart2.insight">
+            📌 A dificuldade financeira é esmagadora — 65% dos casos.
+          </div>
+        </div>
+
+        <!-- Chart 3: Complexity perception -->
+        <div class="chart-card glass">
+          <h3 class="chart-title" data-translate="dados.chart3.title">Consideras o processo complexo?</h3>
+          <p class="chart-subtitle" data-translate="dados.chart3.sub">Perceção de complexidade</p>
+          <div class="chart-container">
+            <canvas id="chart-complexity" aria-label="Gráfico: perceção de complexidade"></canvas>
+          </div>
+          <div class="chart-insight glass-light" data-translate="dados.chart3.insight">
+            📌 Mais de 4 em cada 5 pessoas acha o processo complexo.
+          </div>
+        </div>
+
+        <!-- Chart 4: Life impact -->
+        <div class="chart-card glass">
+          <h3 class="chart-title" data-translate="dados.chart4.title">Impacto nas decisões de vida</h3>
+          <p class="chart-subtitle" data-translate="dados.chart4.sub">Afetou decisões importantes?</p>
+          <div class="chart-container">
+            <canvas id="chart-impact" aria-label="Gráfico: impacto nas decisões de vida"></canvas>
+          </div>
+          <div class="chart-insight glass-light" data-translate="dados.chart4.insight">
+            📌 Não ter casa própria afecta planos de vida de 85% dos inquiridos.
+          </div>
+        </div>
+      </div>
+
+      <!-- PLACEHOLDER: real survey charts -->
+      <div class="placeholder-box reveal">
+        <p>📂 <strong>Placeholder:</strong> Substitui os gráficos acima com os teus gráficos reais do Google Forms / infografias do inquérito.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: SIMULADORES ===================== -->
+  <section class="section section-simuladores" id="simuladores" data-section-color="simuladores">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="sim.tag">Ferramentas interativas</span>
+        <h2 class="section-title" data-translate="sim.title">Simuladores para o teu caso</h2>
+        <p class="section-subtitle" data-translate="sim.subtitle">Explora os números com base na tua situação real. Sem compromissos, sem conta bancária.</p>
+      </div>
+
+      <!-- Simulator Tabs -->
+      <div class="sim-tabs reveal" role="tablist" aria-label="Simuladores">
+        <button class="sim-tab active" role="tab" aria-selected="true" aria-controls="sim-mortgage" data-tab="mortgage" data-translate="sim.tab1">💸 Prestação</button>
+        <button class="sim-tab" role="tab" aria-selected="false" aria-controls="sim-afford" data-tab="afford" data-translate="sim.tab2">💰 Acessibilidade</button>
+        <button class="sim-tab" role="tab" aria-selected="false" aria-controls="sim-time" data-tab="time" data-translate="sim.tab3">⏱️ Tempo para comprar</button>
+        <button class="sim-tab" role="tab" aria-selected="false" aria-controls="sim-costs" data-tab="costs" data-translate="sim.tab4">📋 Custos totais</button>
+      </div>
+
+      <!-- TAB 1: Mortgage (Prestação) -->
+      <div class="sim-panel active" id="sim-mortgage" role="tabpanel">
+        <div class="sim-layout">
+          <div class="sim-controls glass">
+            <h3 class="sim-panel-title" data-translate="sim.mort.title">Simulador de Prestação Mensal</h3>
+            <p class="sim-panel-sub" data-translate="sim.mort.sub">Calcula a prestação estimada do teu crédito habitação.</p>
+
+            <div class="form-group">
+              <label class="form-label" for="mort-price" data-translate="sim.mort.price">Valor do imóvel (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="mort-price-range" min="50000" max="600000" value="200000" step="5000" class="range-input" aria-labelledby="mort-price" />
+                <input type="number" id="mort-price" value="200000" min="50000" max="600000" class="number-input" aria-label="Valor do imóvel" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="mort-down" data-translate="sim.mort.down">Entrada (% do valor)</label>
+              <div class="range-wrapper">
+                <input type="range" id="mort-down-range" min="5" max="50" value="20" step="1" class="range-input" aria-labelledby="mort-down" />
+                <input type="number" id="mort-down" value="20" min="5" max="50" class="number-input" aria-label="Percentagem de entrada" />
+                <span class="input-unit">%</span>
+              </div>
+              <p class="form-hint" id="mort-down-amount"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="mort-rate" data-translate="sim.mort.rate">Taxa de juro anual (%)</label>
+              <div class="range-wrapper">
+                <input type="range" id="mort-rate-range" min="0.5" max="8" value="3.5" step="0.1" class="range-input" aria-labelledby="mort-rate" />
+                <input type="number" id="mort-rate" value="3.5" min="0.5" max="8" step="0.1" class="number-input" aria-label="Taxa de juro" />
+                <span class="input-unit">%</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="mort-term" data-translate="sim.mort.term">Prazo (anos)</label>
+              <div class="range-wrapper">
+                <input type="range" id="mort-term-range" min="5" max="40" value="30" step="1" class="range-input" aria-labelledby="mort-term" />
+                <input type="number" id="mort-term" value="30" min="5" max="40" class="number-input" aria-label="Prazo em anos" />
+                <span class="input-unit" data-translate="sim.years">anos</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-results">
+            <div class="result-hero glass">
+              <div class="result-main-label" data-translate="sim.mort.result">Prestação mensal estimada</div>
+              <div class="result-main-value">€<span id="mort-monthly">0</span></div>
+              <div class="result-main-note" data-translate="sim.mort.note">Valor estimado. Inclui capital e juros.</div>
+            </div>
+            <div class="result-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.mort.loan">Capital emprestado</span>
+                <span class="breakdown-value" id="mort-loan">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.mort.totalInterest">Total de juros</span>
+                <span class="breakdown-value red" id="mort-interest">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.mort.totalPaid">Total pago</span>
+                <span class="breakdown-value" id="mort-total">€0</span>
+              </div>
+              <div class="breakdown-item highlight">
+                <span class="breakdown-label" data-translate="sim.mort.effort">Taxa de esforço (30% salário)</span>
+                <span class="breakdown-value" id="mort-effort">—</span>
+              </div>
+            </div>
+            <div class="effort-hint glass-light" id="mort-effort-hint"></div>
+            <div class="result-bar-container">
+              <div class="result-bar-label" data-translate="sim.mort.capitalVsInterest">Capital vs. Juros</div>
+              <div class="result-bar">
+                <div class="result-bar-fill capital-bar" id="mort-capital-bar" style="width:50%"></div>
+                <div class="result-bar-fill interest-bar" id="mort-interest-bar" style="width:50%"></div>
+              </div>
+              <div class="result-bar-legend">
+                <span><span class="legend-dot capital"></span><span data-translate="sim.mort.capital">Capital</span></span>
+                <span><span class="legend-dot interest"></span><span data-translate="sim.mort.interest">Juros</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Affordability -->
+      <div class="sim-panel" id="sim-afford" role="tabpanel">
+        <div class="sim-layout">
+          <div class="sim-controls glass">
+            <h3 class="sim-panel-title" data-translate="sim.aff.title">Calculadora de Acessibilidade</h3>
+            <p class="sim-panel-sub" data-translate="sim.aff.sub">Com base no teu salário, descobre qual o imóvel que podes financiar.</p>
+
+            <div class="form-group">
+              <label class="form-label" for="aff-salary" data-translate="sim.aff.salary">Rendimento mensal líquido (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="aff-salary-range" min="500" max="5000" value="1400" step="100" class="range-input" />
+                <input type="number" id="aff-salary" value="1400" min="500" max="5000" class="number-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="aff-expenses" data-translate="sim.aff.expenses">Despesas mensais fixas (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="aff-expenses-range" min="0" max="3000" value="700" step="50" class="range-input" />
+                <input type="number" id="aff-expenses" value="700" min="0" max="3000" class="number-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="aff-savings" data-translate="sim.aff.savings">Poupanças atuais (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="aff-savings-range" min="0" max="100000" value="5000" step="500" class="range-input" />
+                <input type="number" id="aff-savings" value="5000" min="0" max="100000" class="number-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="aff-rate" data-translate="sim.aff.rate">Taxa de juro estimada (%)</label>
+              <div class="range-wrapper">
+                <input type="range" id="aff-rate-range" min="0.5" max="8" value="3.5" step="0.1" class="range-input" />
+                <input type="number" id="aff-rate" value="3.5" step="0.1" class="number-input" />
+                <span class="input-unit">%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-results">
+            <div class="result-hero glass">
+              <div class="result-main-label" data-translate="sim.aff.result">Valor máximo de imóvel</div>
+              <div class="result-main-value">€<span id="aff-max">0</span></div>
+            </div>
+            <div class="result-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.aff.disposable">Disponível p/ prestação (35% regra)</span>
+                <span class="breakdown-value" id="aff-disposable">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.aff.downNeeded">Entrada necessária (20%)</span>
+                <span class="breakdown-value" id="aff-down">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.aff.downGap">Diferença para a entrada</span>
+                <span class="breakdown-value" id="aff-gap">€0</span>
+              </div>
+            </div>
+            <!-- Affordability Gauge -->
+            <div class="gauge-container">
+              <div class="gauge-label" data-translate="sim.aff.gauge">Nível de acessibilidade</div>
+              <div class="gauge-bar">
+                <div class="gauge-fill" id="aff-gauge-fill" style="width: 30%"></div>
+              </div>
+              <div class="gauge-status" id="aff-gauge-status"></div>
+            </div>
+            <div class="effort-hint glass-light" id="aff-hint"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Time to Buy -->
+      <div class="sim-panel" id="sim-time" role="tabpanel">
+        <div class="sim-layout">
+          <div class="sim-controls glass">
+            <h3 class="sim-panel-title" data-translate="sim.time.title">Tempo para Comprar</h3>
+            <p class="sim-panel-sub" data-translate="sim.time.sub">Calcula quantos meses até estares pronto para a entrada.</p>
+
+            <div class="form-group">
+              <label class="form-label" for="time-target" data-translate="sim.time.target">Preço alvo do imóvel (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="time-target-range" min="50000" max="600000" value="180000" step="5000" class="range-input" />
+                <input type="number" id="time-target" value="180000" class="number-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="time-down-pct" data-translate="sim.time.downPct">Entrada pretendida (%)</label>
+              <div class="range-wrapper">
+                <input type="range" id="time-down-pct-range" min="10" max="40" value="20" step="1" class="range-input" />
+                <input type="number" id="time-down-pct" value="20" class="number-input" />
+                <span class="input-unit">%</span>
+              </div>
+              <p class="form-hint" id="time-down-needed"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="time-current" data-translate="sim.time.current">Poupanças atuais (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="time-current-range" min="0" max="100000" value="5000" step="500" class="range-input" />
+                <input type="number" id="time-current" value="5000" class="number-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="time-monthly" data-translate="sim.time.monthly">Poupança mensal (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="time-monthly-range" min="50" max="2000" value="300" step="50" class="range-input" />
+                <input type="number" id="time-monthly" value="300" class="number-input" />
+              </div>
+            </div>
+          </div>
+
+          <div class="sim-results">
+            <div class="result-hero glass">
+              <div class="result-main-label" data-translate="sim.time.result">Tempo estimado para a entrada</div>
+              <div class="result-main-value"><span id="time-years">0</span> <span data-translate="sim.yearsLabel">anos</span></div>
+              <div id="time-months-extra" class="result-main-note"></div>
+            </div>
+            <div class="result-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.time.needed">Entrada total necessária</span>
+                <span class="breakdown-value" id="time-total-needed">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.time.gap">Falta poupar</span>
+                <span class="breakdown-value" id="time-gap">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.time.milestone">Marco de poupança (50%)</span>
+                <span class="breakdown-value" id="time-milestone">€0</span>
+              </div>
+            </div>
+            <!-- Timeline Visual -->
+            <div class="timeline-visual">
+              <div class="timeline-bar">
+                <div class="timeline-fill" id="time-fill" style="width: 0%"></div>
+                <div class="timeline-marker" id="time-marker"></div>
+              </div>
+              <div class="timeline-labels">
+                <span data-translate="sim.time.today">Hoje</span>
+                <span id="time-goal-label"></span>
+              </div>
+            </div>
+            <div class="effort-hint glass-light" id="time-hint"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Full Cost Breakdown -->
+      <div class="sim-panel" id="sim-costs" role="tabpanel">
+        <div class="sim-layout">
+          <div class="sim-controls glass">
+            <h3 class="sim-panel-title" data-translate="sim.cost.title">Custos Totais de Compra</h3>
+            <p class="sim-panel-sub" data-translate="sim.cost.sub">Para além do preço do imóvel, estes são os custos que precisas de ter em conta.</p>
+
+            <div class="form-group">
+              <label class="form-label" for="cost-price" data-translate="sim.cost.price">Valor do imóvel (€)</label>
+              <div class="range-wrapper">
+                <input type="range" id="cost-price-range" min="50000" max="600000" value="200000" step="5000" class="range-input" />
+                <input type="number" id="cost-price" value="200000" class="number-input" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" data-translate="sim.cost.type">Tipo de habitação</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="cost-type-primary" data-translate="sim.cost.primary">Hab. Própria Permanente</button>
+                <button class="toggle-btn" id="cost-type-secondary" data-translate="sim.cost.secondary">Hab. Secundária</button>
+              </div>
+            </div>
+
+            <div class="info-box glass-light">
+              <p data-translate="sim.cost.imtNote"><strong>IMT</strong> (Imposto Municipal sobre Transmissões) é calculado com base no valor e tipo de imóvel, segundo as tabelas de 2024.</p>
+            </div>
+          </div>
+
+          <div class="sim-results">
+            <div class="result-hero glass">
+              <div class="result-main-label" data-translate="sim.cost.result">Total de custos de transação</div>
+              <div class="result-main-value">€<span id="cost-total">0</span></div>
+              <div class="result-main-note" id="cost-pct-note"></div>
+            </div>
+            <div class="result-breakdown costs-breakdown">
+              <div class="breakdown-item">
+                <span class="breakdown-label">IMT</span>
+                <span class="breakdown-value" id="cost-imt">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.cost.is">Imposto de Selo (0.8%)</span>
+                <span class="breakdown-value" id="cost-is">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.cost.notary">Escritura e Registo</span>
+                <span class="breakdown-value" id="cost-notary">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.cost.bank">Comissões bancárias</span>
+                <span class="breakdown-value" id="cost-bank">€0</span>
+              </div>
+              <div class="breakdown-item">
+                <span class="breakdown-label" data-translate="sim.cost.realtor">Mediadora imobiliária (est.)</span>
+                <span class="breakdown-value" id="cost-realtor">€0</span>
+              </div>
+              <div class="breakdown-item highlight border-top">
+                <span class="breakdown-label" data-translate="sim.cost.downPayment">Entrada (20%) + custos</span>
+                <span class="breakdown-value" id="cost-grand-total">€0</span>
+              </div>
+            </div>
+            <div class="effort-hint glass-light" id="cost-hint" data-translate="sim.cost.hint">💡 Planeia ter 25–30% do valor do imóvel disponível para cobrir entrada e todos os custos.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: PROGRESS TRACKER ===================== -->
+  <section class="section section-progress" id="progress" data-section-color="progress">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="prog.tag">O teu progresso</span>
+        <h2 class="section-title" data-translate="prog.title">Guia de jornada passo a passo</h2>
+        <p class="section-subtitle" data-translate="prog.subtitle">Da ideia às chaves — cada fase explicada de forma simples.</p>
+      </div>
+
+      <div class="journey-guide reveal">
+        <div class="journey-guide-track">
+          <div class="journey-guide-step active" data-step="1">
+            <div class="jg-step-icon">📒</div>
+            <div class="jg-step-num">01</div>
+            <h4 class="jg-step-title" data-translate="journey.s1.title">Define os teus objetivos</h4>
+            <p class="jg-step-desc" data-translate="journey.s1.desc">Que tipo de casa, em que zona, qual o orçamento máximo? Estabelece critérios claros antes de começar.</p>
+            <div class="jg-step-duration" data-translate="journey.s1.time">1–4 semanas</div>
+            <button class="jg-step-btn" data-step="1" data-translate="journey.expand">Ver detalhes</button>
+          </div>
+          <div class="journey-connector"></div>
+
+          <div class="journey-guide-step" data-step="2">
+            <div class="jg-step-icon">💼</div>
+            <div class="jg-step-num">02</div>
+            <h4 class="jg-step-title" data-translate="journey.s2.title">Prepara as finanças</h4>
+            <p class="jg-step-desc" data-translate="journey.s2.desc">Reúne documentos (IRS, recibos), melhora a taxa de esforço, poupa para a entrada. Consulta o banco.</p>
+            <div class="jg-step-duration" data-translate="journey.s2.time">2–12 meses</div>
+            <button class="jg-step-btn" data-step="2" data-translate="journey.expand">Ver detalhes</button>
+          </div>
+          <div class="journey-connector"></div>
+
+          <div class="journey-guide-step" data-step="3">
+            <div class="jg-step-icon">🏦</div>
+            <div class="jg-step-num">03</div>
+            <h4 class="jg-step-title" data-translate="journey.s3.title">Pré-aprovação do crédito</h4>
+            <p class="jg-step-desc" data-translate="journey.s3.desc">Pede a pré-aprovação em vários bancos. Compara TAN, TAEG, spreads e condições. Negocia.</p>
+            <div class="jg-step-duration" data-translate="journey.s3.time">2–6 semanas</div>
+            <button class="jg-step-btn" data-step="3" data-translate="journey.expand">Ver detalhes</button>
+          </div>
+          <div class="journey-connector"></div>
+
+          <div class="journey-guide-step" data-step="4">
+            <div class="jg-step-icon">🔍</div>
+            <div class="jg-step-num">04</div>
+            <h4 class="jg-step-title" data-translate="journey.s4.title">Procura do imóvel</h4>
+            <p class="jg-step-desc" data-translate="journey.s4.desc">Analisa IMI, Caderneta Predial, Certidão do Registo, estado do imóvel. Negocia o preço.</p>
+            <div class="jg-step-duration" data-translate="journey.s4.time">1–6 meses</div>
+            <button class="jg-step-btn" data-step="4" data-translate="journey.expand">Ver detalhes</button>
+          </div>
+          <div class="journey-connector"></div>
+
+          <div class="journey-guide-step" data-step="5">
+            <div class="jg-step-icon">📝</div>
+            <div class="jg-step-num">05</div>
+            <h4 class="jg-step-title" data-translate="journey.s5.title">CPCV e aprovação final</h4>
+            <p class="jg-step-desc" data-translate="journey.s5.desc">Contrato Promessa de Compra e Venda (CPCV) com sinal. Banco aprova formalmente o crédito habitação.</p>
+            <div class="jg-step-duration" data-translate="journey.s5.time">2–8 semanas</div>
+            <button class="jg-step-btn" data-step="5" data-translate="journey.expand">Ver detalhes</button>
+          </div>
+          <div class="journey-connector"></div>
+
+          <div class="journey-guide-step" data-step="6">
+            <div class="jg-step-icon">🗝️</div>
+            <div class="jg-step-num">06</div>
+            <h4 class="jg-step-title" data-translate="journey.s6.title">Escritura e as chaves</h4>
+            <p class="jg-step-desc" data-translate="journey.s6.desc">Escritura pública no notário. Pagamento de IMT e IS. Registo na Conservatória. A casa é tua!</p>
+            <div class="jg-step-duration" data-translate="journey.s6.time">1 dia</div>
+            <button class="jg-step-btn" data-step="6" data-translate="journey.expand">Ver detalhes</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step Detail Modal -->
+      <div class="step-modal glass" id="step-modal" aria-hidden="true">
+        <button class="step-modal-close" id="step-modal-close">&#10005;</button>
+        <div id="step-modal-content"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: APRENDER ===================== -->
+  <section class="section section-aprender" id="aprender" data-section-color="aprender">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="ap.tag">Glossário &amp; conceitos</span>
+        <h2 class="section-title" data-translate="ap.title">Aprende sem complicação</h2>
+        <p class="section-subtitle" data-translate="ap.subtitle">Tudo o que precisas saber, explicado de forma clara. Sem jargão bancário.</p>
+      </div>
+
+      <!-- Learn Category Tabs -->
+      <div class="learn-tabs reveal" role="tablist">
+        <button class="learn-tab active" data-cat="all" data-translate="ap.catAll">Todos</button>
+        <button class="learn-tab" data-cat="credit" data-translate="ap.catCredit">Crédito</button>
+        <button class="learn-tab" data-cat="tax" data-translate="ap.catTax">Impostos</button>
+        <button class="learn-tab" data-cat="support" data-translate="ap.catSupport">Apoios</button>
+        <button class="learn-tab" data-cat="process" data-translate="ap.catProcess">Processo</button>
+      </div>
+
+      <div class="learn-grid reveal" id="learn-grid">
+        <!-- Cards generated by JS -->
+      </div>
+
+      <!-- Expand card modal -->
+      <div class="learn-modal glass" id="learn-modal" aria-hidden="true">
+        <button class="learn-modal-close" id="learn-modal-close">&#10005;</button>
+        <div id="learn-modal-content"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: FAQ ===================== -->
+  <section class="section section-faq" id="faq" data-section-color="faq">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="faq.tag">Perguntas frequentes</span>
+        <h2 class="section-title" data-translate="faq.title">As dúvidas mais comuns</h2>
+        <p class="section-subtitle" data-translate="faq.subtitle">Mais de 40 perguntas respondidas de forma clara e rápida.</p>
+      </div>
+
+      <div class="faq-search-wrap reveal">
+        <div class="faq-search-inner glass">
+          <span class="faq-search-icon">🔍</span>
+          <input type="text" id="faq-search" class="faq-search-input" placeholder="Pesquisa uma dúvida..." data-translate-placeholder="faq.searchPlaceholder" aria-label="Pesquisar FAQ" />
+          <button class="faq-clear" id="faq-clear" aria-label="Limpar pesquisa">&#10005;</button>
+        </div>
+      </div>
+
+      <div class="faq-categories reveal" role="tablist" id="faq-cats">
+        <button class="faq-cat active" data-cat="all" data-translate="faq.catAll">Todos</button>
+        <button class="faq-cat" data-cat="financing" data-translate="faq.catFinancing">Financiamento</button>
+        <button class="faq-cat" data-cat="taxes" data-translate="faq.catTaxes">Impostos</button>
+        <button class="faq-cat" data-cat="process" data-translate="faq.catProcess">Processo</button>
+        <button class="faq-cat" data-cat="support" data-translate="faq.catSupport">Apoios</button>
+      </div>
+
+      <div class="faq-list" id="faq-list" role="list">
+        <!-- Generated by JS -->
+      </div>
+
+      <div class="faq-no-results" id="faq-no-results" style="display:none;" data-translate="faq.noResults">Nenhuma pergunta encontrada. Tenta outra pesquisa.</div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: PROJETO (Design Thinking) ===================== -->
+  <section class="section section-projeto" id="projeto" data-section-color="projeto">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="proj.tag">Design Thinking</span>
+        <h2 class="section-title" data-translate="proj.title">O processo por trás desta plataforma</h2>
+        <p class="section-subtitle" data-translate="proj.subtitle">Este projeto foi construído com base em investigação real, centrada nas pessoas.</p>
+      </div>
+
+      <!-- DT Phase Cards -->
+      <div class="dt-phases reveal">
+        <div class="dt-phase glass">
+          <div class="dt-phase-icon">🫀</div>
+          <div class="dt-phase-num" data-translate="proj.phase1num">Fase 1</div>
+          <h3 class="dt-phase-title" data-translate="proj.phase1">Empatia</h3>
+          <p class="dt-phase-desc" data-translate="proj.phase1desc">Realizámos 113 inquéritos e entrevistas a jovens adultos portugueses para entender as suas frustrações, medos e necessidades reais sobre a compra da primeira casa.</p>
+          <ul class="dt-phase-list">
+            <li data-translate="proj.phase1a">113 respostas ao inquérito</li>
+            <li data-translate="proj.phase1b">Entrevistas de profundidade</li>
+            <li data-translate="proj.phase1c">Análise de comportamento digital</li>
+          </ul>
+        </div>
+
+        <div class="dt-phase glass">
+          <div class="dt-phase-icon">🎯</div>
+          <div class="dt-phase-num" data-translate="proj.phase2num">Fase 2</div>
+          <h3 class="dt-phase-title" data-translate="proj.phase2">Definição</h3>
+          <p class="dt-phase-desc" data-translate="proj.phase2desc">Sintetizámos os dados para identificar o problema central e criar um enunciado de problema (How Might We) que orientou toda a ideação.</p>
+          <div class="hmw-box glass-light">
+            <div class="hmw-label">How Might We...</div>
+            <p class="hmw-text" data-translate="proj.hmw">"Como podemos ajudar jovens adultos em Portugal a sentir-se informados, preparados e confiantes para comprar a sua primeira casa?"</p>
+          </div>
+        </div>
+
+        <div class="dt-phase glass">
+          <div class="dt-phase-icon">💡</div>
+          <div class="dt-phase-num" data-translate="proj.phase3num">Fase 3</div>
+          <h3 class="dt-phase-title" data-translate="proj.phase3">Ideação</h3>
+          <p class="dt-phase-desc" data-translate="proj.phase3desc">Gerámos mais de 30 ideias, filtrámos com base no impacto e viabilidade, e chegámos à solução: uma plataforma digital interativa e educativa.</p>
+          <ul class="dt-phase-list">
+            <li data-translate="proj.phase3a">30+ ideias geradas</li>
+            <li data-translate="proj.phase3b">Matrix de impacto vs. esforço</li>
+            <li data-translate="proj.phase3c">Protótipo de alta fidelidade</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Persona: Sofia -->
+      <div class="persona-section reveal">
+        <h3 class="persona-heading" data-translate="proj.personaTitle">Persona: Sofia Mendes</h3>
+        <div class="persona-card glass">
+          <div class="persona-avatar">
+            <!-- PLACEHOLDER: Photo of persona -->
+            <div class="persona-avatar-placeholder">👩</div>
+            <div class="persona-tags">
+              <span class="persona-tag" data-translate="proj.personaAge">26 anos</span>
+              <span class="persona-tag" data-translate="proj.personaJob">Enfermeira</span>
+              <span class="persona-tag" data-translate="proj.personaCity">Lisboa</span>
+            </div>
+          </div>
+          <div class="persona-info">
+            <div class="persona-quote glass-light">
+              <span class="persona-quote-mark">"</span>
+              <p data-translate="proj.personaQuote">Quero muito ter a minha casa, mas não faço ideia de onde começar. Tenho medo de tomar decisões erradas com tanto dinheiro envolvido."</p>
+            </div>
+            <div class="persona-grid">
+              <div class="persona-detail">
+                <div class="pd-label" data-translate="proj.pdGoals">Objetivos</div>
+                <ul>
+                  <li data-translate="proj.pdGoal1">Sair de casa partilhada nos próximos 3 anos</li>
+                  <li data-translate="proj.pdGoal2">Ter estabilidade e autonomia</li>
+                  <li data-translate="proj.pdGoal3">Poupar para entrada sem comprometer qualidade de vida</li>
+                </ul>
+              </div>
+              <div class="persona-detail">
+                <div class="pd-label" data-translate="proj.pdFrustrations">Frustrações</div>
+                <ul>
+                  <li data-translate="proj.pdFrust1">Linguagem bancária inacessível</li>
+                  <li data-translate="proj.pdFrust2">Não sabe quais apoios existem</li>
+                  <li data-translate="proj.pdFrust3">Sente que nunca vai conseguir poupar o suficiente</li>
+                </ul>
+              </div>
+              <div class="persona-detail">
+                <div class="pd-label" data-translate="proj.pdBarriers">Barreiras</div>
+                <ul>
+                  <li data-translate="proj.pdBarrier1">Salário de €1.400/mês</li>
+                  <li data-translate="proj.pdBarrier2">Poupanças de ~€5.000</li>
+                  <li data-translate="proj.pdBarrier3">Falta de rede de apoio familiar</li>
+                </ul>
+              </div>
+              <div class="persona-detail">
+                <div class="pd-label" data-translate="proj.pdNeeds">Necessidades</div>
+                <ul>
+                  <li data-translate="proj.pdNeed1">Informação simples e passo a passo</li>
+                  <li data-translate="proj.pdNeed2">Ferramentas para calcular viabilidade</li>
+                  <li data-translate="proj.pdNeed3">Sentir que o objetivo é alcançável</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Key Insights -->
+      <div class="insights-section reveal">
+        <h3 class="insights-heading" data-translate="proj.insightsTitle">Principais insights da investigação</h3>
+        <div class="insights-grid">
+          <div class="insight-card glass">
+            <div class="insight-icon">💸</div>
+            <h4 data-translate="proj.ins1.title">Barreira financeira como raiz</h4>
+            <p data-translate="proj.ins1.desc">65% identificam a dificuldade financeira como o principal obstáculo — não a burocracia, não a falta de informação.</p>
+          </div>
+          <div class="insight-card glass">
+            <div class="insight-icon">🧩</div>
+            <h4 data-translate="proj.ins2.title">Complexidade percebida é alta</h4>
+            <p data-translate="proj.ins2.desc">83% acham o processo complexo, mas muitos nunca chegaram a investigá-lo verdadeiramente — a perceção supera a realidade.</p>
+          </div>
+          <div class="insight-card glass">
+            <div class="insight-icon">🏛️</div>
+            <h4 data-translate="proj.ins3.title">Apoios existem mas são desconhecidos</h4>
+            <p data-translate="proj.ins3.desc">50% desconhecem apoios governamentais como Porta 65, isenção de IMT para jovens ou garantia pública para jovens.</p>
+          </div>
+          <div class="insight-card glass">
+            <div class="insight-icon">🔄</div>
+            <h4 data-translate="proj.ins4.title">Ciclo de inação</h4>
+            <p data-translate="proj.ins4.desc">A falta de informação gera ansiedade, que gera inação, que perpetua a falta de progresso. A plataforma quebra esse ciclo.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLACEHOLDER: Journey Map -->
+      <div class="placeholder-box reveal">
+        <p>🗺️ <strong>Placeholder:</strong> Insere aqui o teu journey map completo (imagem ou infografia da viagem emocional da Sofia).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: CONTACTO ===================== -->
+  <section class="section section-contacto" id="contacto" data-section-color="contacto">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="contact.tag">Fala connosco</span>
+        <h2 class="section-title" data-translate="contact.title">Tens dúvidas ou sugestões?</h2>
+        <p class="section-subtitle" data-translate="contact.subtitle">Este projeto está em evolução. O teu feedback é essencial para o tornar melhor.</p>
+      </div>
+
+      <div class="contact-layout reveal">
+        <div class="contact-form-wrap glass">
+          <form id="contact-form" class="contact-form" novalidate>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="c-name" data-translate="contact.name">Nome</label>
+                <input type="text" id="c-name" class="text-input" placeholder="Sofia Mendes" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="c-email" data-translate="contact.email">Email</label>
+                <input type="email" id="c-email" class="text-input" placeholder="sofia@email.com" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="c-subject" data-translate="contact.subject">Assunto</label>
+              <select id="c-subject" class="text-input select-input">
+                <option value="feedback" data-translate="contact.optFeedback">Feedback sobre a plataforma</option>
+                <option value="doubt" data-translate="contact.optDoubt">Dúvida sobre o processo</option>
+                <option value="collab" data-translate="contact.optCollab">Colaboração / parceria</option>
+                <option value="other" data-translate="contact.optOther">Outro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="c-message" data-translate="contact.message">Mensagem</label>
+              <textarea id="c-message" class="text-input textarea-input" rows="5" placeholder="Descreve a tua dúvida ou sugestão..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" data-translate="contact.send">Enviar mensagem</button>
+            <div class="form-success" id="form-success" style="display:none;" data-translate="contact.success">✅ Mensagem enviada! Obrigado pelo teu feedback.</div>
+          </form>
+        </div>
+
+        <div class="contact-info">
+          <div class="contact-info-card glass">
+            <div class="contact-info-icon">📚</div>
+            <h4 data-translate="contact.infoTitle">Projeto académico</h4>
+            <p data-translate="contact.infoDesc">Este projeto foi desenvolvido no âmbito de um curso de Design Thinking, como solução ao problema da falta de informação sobre a compra da primeira casa.</p>
+          </div>
+          <div class="contact-info-card glass">
+            <div class="contact-info-icon">📊</div>
+            <h4 data-translate="contact.dataTitle">Dados do inquérito</h4>
+            <p data-translate="contact.dataDesc">A investigação baseou-se em 113 respostas a um inquérito online distribuído a jovens adultos entre os 18 e os 30 anos residentes em Portugal.</p>
+          </div>
+          <!-- PLACEHOLDER: Team info -->
+          <div class="placeholder-box">
+            <p>👥 <strong>Placeholder:</strong> Adiciona a informação da equipa, nome do curso e instituição aqui.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="footer" id="footer">
+    <div class="footer-wave" aria-hidden="true">
+      <svg viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,40 C240,80 480,0 720,40 C960,80 1200,0 1440,40 L1440,80 L0,80 Z" fill="#1A1F2E"/>
+      </svg>
+    </div>
+    <div class="footer-body">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a href="#hero" class="footer-logo">
+              <span class="logo-icon">🏠</span>
+              <span class="logo-text">Casa<strong>Já</strong></span>
+            </a>
+            <p class="footer-tagline" data-translate="footer.tagline">A informação que precisavas.<br/>Na altura certa.</p>
+            <div class="footer-badges">
+              <span class="footer-badge" data-translate="footer.badge1">🇵🇹 Feito para Portugal</span>
+              <span class="footer-badge" data-translate="footer.badge2">🎓 Projeto académico</span>
+            </div>
+          </div>
+
+          <div class="footer-col">
+            <h4 class="footer-col-title" data-translate="footer.nav">Navegação</h4>
+            <ul class="footer-links">
+              <li><a href="#hero" data-translate="nav.home">Início</a></li>
+              <li><a href="#simuladores" data-translate="nav.simuladores">Simuladores</a></li>
+              <li><a href="#dados" data-translate="nav.dados">Dados</a></li>
+              <li><a href="#aprender" data-translate="nav.aprender">Aprender</a></li>
+              <li><a href="#faq" data-translate="nav.faq">FAQ</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4 class="footer-col-title" data-translate="footer.tools">Simuladores</h4>
+            <ul class="footer-links">
+              <li><a href="#simuladores" data-translate="footer.tool1">Prestação mensal</a></li>
+              <li><a href="#simuladores" data-translate="footer.tool2">Acessibilidade</a></li>
+              <li><a href="#simuladores" data-translate="footer.tool3">Tempo para comprar</a></li>
+              <li><a href="#simuladores" data-translate="footer.tool4">Custos totais</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-col">
+            <h4 class="footer-col-title" data-translate="footer.project">Projeto</h4>
+            <ul class="footer-links">
+              <li><a href="#projeto" data-translate="footer.projDT">Design Thinking</a></li>
+              <li><a href="#projeto" data-translate="footer.projPersona">Persona Sofia</a></li>
+              <li><a href="#projeto" data-translate="footer.projInsights">Insights</a></li>
+              <li><a href="#contacto" data-translate="nav.contacto">Contacto</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div class="footer-disclaimer" data-translate="footer.disclaimer">
+            ⚠️ Os valores apresentados são estimativas educativas. Consulta sempre um especialista financeiro antes de tomar decisões de investimento.
+          </div>
+          <div class="footer-copy">
+            <span data-translate="footer.copy">© 2025 CasaJá — Projeto Design Thinking. Todos os direitos reservados.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/translations.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
