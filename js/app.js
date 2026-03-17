@@ -1,7 +1,7 @@
 /* ============================================================
-   CasaJá — Main Application Logic
-   Interactive platform for first-home buyers in Portugal
-   ============================================================ */
+  My Home — Main Application Logic
+  Interactive platform for first-home buyers in Portugal
+  ============================================================ */
 
 (function () {
   'use strict';
@@ -10,6 +10,7 @@
   let currentLang = 'pt';
   let chartsInitialized = false;
   const chartInstances = {};
+  const FORM_ENDPOINT = 'https://formspree.io/f/xlgpolvp'; // Formspree endpoint for contact form
 
   /* ═══════════════════════════════════════
      LANGUAGE / TRANSLATION ENGINE
@@ -167,7 +168,7 @@
     const overlay = document.getElementById('onboarding');
     const closeBtn = document.getElementById('onboarding-close');
     const startBtn = document.getElementById('onboarding-start');
-    const shown = sessionStorage.getItem('casaja-onboarding');
+    const shown = sessionStorage.getItem('myhome-onboarding');
 
     if (!shown) {
       setTimeout(() => overlay.classList.add('visible'), 800);
@@ -175,7 +176,7 @@
 
     function close() {
       overlay.classList.remove('visible');
-      sessionStorage.setItem('casaja-onboarding', 'true');
+      sessionStorage.setItem('myhome-onboarding', 'true');
     }
 
     closeBtn.addEventListener('click', close);
@@ -1085,13 +1086,62 @@
   function initContactForm() {
     const form = document.getElementById('contact-form');
     const success = document.getElementById('form-success');
+    const errorEl = document.getElementById('form-error');
+    const submitBtn = form.querySelector('button[type="submit"]');
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      // Simulate submission
-      success.style.display = 'block';
-      form.reset();
-      setTimeout(() => { success.style.display = 'none'; }, 5000);
+      if (!submitBtn) return;
+
+      success.style.display = 'none';
+      errorEl.style.display = 'none';
+
+      if (!FORM_ENDPOINT || FORM_ENDPOINT.includes('your-id-here')) {
+        errorEl.textContent = currentLang === 'pt' ? 'Configura o endpoint Formspree primeiro.' : 'Configure the Formspree endpoint first.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const payload = {
+        name: document.getElementById('c-name').value.trim(),
+        email: document.getElementById('c-email').value.trim(),
+        subject: document.getElementById('c-subject').value,
+        message: document.getElementById('c-message').value.trim(),
+        topic: document.getElementById('c-subject').value,
+        language: currentLang,
+        source: 'myhome-web',
+        timestamp: new Date().toISOString()
+      };
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = currentLang === 'pt' ? 'A enviar...' : 'Sending...';
+
+      try {
+        const res = await fetch(FORM_ENDPOINT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error('Request failed');
+
+        success.textContent = T[currentLang]?.['contact.success'] || 'Mensagem enviada!';
+        success.style.display = 'block';
+        form.reset();
+      } catch (err) {
+        errorEl.textContent = currentLang === 'pt' ? 'Erro ao enviar. Tenta novamente.' : 'Failed to send. Try again.';
+        errorEl.style.display = 'block';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = T[currentLang]?.['contact.send'] || 'Enviar mensagem';
+        setTimeout(() => {
+          success.style.display = 'none';
+          errorEl.style.display = 'none';
+        }, 6000);
+      }
     });
   }
 

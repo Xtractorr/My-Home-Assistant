@@ -1,10 +1,10 @@
 /* ============================================================
-   CasaJá — Full Bilingual Translations (PT / EN)
-   ============================================================ */
+  My Home — Full Bilingual Translations (PT / EN)
+  ============================================================ */
 const T = {
   pt: {
     // Meta
-    'meta.title': 'CasaJá — A tua primeira casa começa aqui',
+   'meta.title': 'My Home — A tua primeira casa começa aqui',
     'meta.description': 'Plataforma interativa para jovens adultos entenderem, planearem e navegarem com confiança o processo de compra da primeira casa em Portugal.',
 
     // Nav
@@ -17,7 +17,7 @@ const T = {
     'nav.contacto': 'Contacto',
 
     // Onboarding
-    'onboarding.title': 'Bem-vindo ao CasaJá',
+    'onboarding.title': 'Bem-vindo ao My Home',
     'onboarding.text': 'Esta plataforma foi criada para te guiar, passo a passo, no processo de comprar a tua primeira casa — sem jargão, sem stress.',
     'onboarding.tip1': '💡 Testa os simuladores para explorar os teus números',
     'onboarding.tip2': '📊 Vê os dados reais de 113 jovens como tu',
@@ -304,11 +304,11 @@ const T = {
     'footer.projPersona': 'Persona Sofia',
     'footer.projInsights': 'Insights',
     'footer.disclaimer': '⚠️ Os valores apresentados são estimativas educativas. Consulta sempre um especialista financeiro antes de tomar decisões de investimento.',
-    'footer.copy': '© 2025 CasaJá — Projeto Design Thinking. Todos os direitos reservados.',
+    'footer.copy': '© 2025 My Home — Projeto Design Thinking. Todos os direitos reservados.',
   },
 
   en: {
-    'meta.title': 'CasaJá — Your first home starts here',
+    'meta.title': 'My Home — Your first home starts here',
     'meta.description': 'Interactive platform helping young adults understand, plan, and confidently navigate buying their first home in Portugal.',
 
     'nav.home': 'Home',
@@ -319,7 +319,7 @@ const T = {
     'nav.projeto': 'Project',
     'nav.contacto': 'Contact',
 
-    'onboarding.title': 'Welcome to CasaJá',
+    'onboarding.title': 'Welcome to My Home',
     'onboarding.text': 'This platform was built to guide you, step by step, through buying your first home — no jargon, no stress.',
     'onboarding.tip1': '💡 Try the simulators to explore your numbers',
     'onboarding.tip2': '📊 See real data from 113 young people like you',
@@ -591,7 +591,7 @@ const T = {
     'footer.projPersona': 'Persona Sofia',
     'footer.projInsights': 'Insights',
     'footer.disclaimer': '⚠️ The values presented are educational estimates. Always consult a financial specialist before making investment decisions.',
-    'footer.copy': '© 2025 CasaJá — Design Thinking Project. All rights reserved.',
+    'footer.copy': '© 2025 My Home — Design Thinking Project. All rights reserved.',
   }
 };
 
