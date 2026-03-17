@@ -48,6 +48,14 @@
     renderLearnCards();
     renderFAQ();
     if (chartsInitialized) updateChartLabels();
+
+    // Sync quiz step label with current step number
+    const stepTextEl = document.getElementById('quiz-step-text');
+    if (stepTextEl) {
+      const stepNum = parseInt(stepTextEl.dataset.currentStep || '1', 10);
+      const template = T[currentLang]['quiz.step'] || 'Passo {n} de 3';
+      stepTextEl.textContent = template.replace('{n}', stepNum);
+    }
   }
 
   /* ═══════════════════════════════════════
@@ -205,6 +213,7 @@
       steps.forEach((s, i) => s.classList.toggle('active', i === step - 1));
       progressFill.style.width = `${(step / 3) * 100}%`;
       const template = T[currentLang]['quiz.step'] || 'Passo {n} de 3';
+      stepText.dataset.currentStep = step;
       stepText.textContent = template.replace('{n}', step);
     }
 
