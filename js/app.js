@@ -323,6 +323,9 @@
       document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
       updateStep();
     });
+
+    // Initialize step text on load
+    updateStep();
   }
 
   /* ═══════════════════════════════════════
