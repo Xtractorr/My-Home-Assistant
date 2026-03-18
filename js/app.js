@@ -11,6 +11,14 @@
   let chartsInitialized = false;
   const chartInstances = {};
   const FORM_ENDPOINT = 'https://formspree.io/f/xlgpolvp'; // Formspree endpoint for contact form
+  const MARKET_STATE = { referenceRate: null, inflation: null, lending: null, updatedAt: null };
+  const BANK_OFFERS_PT = [
+    { bank: 'Caixa Geral de Depósitos', type: 'Taxa mista', rate: 'Spread desde 0.75%', note: { pt: 'Condição associada a domiciliação de ordenado e seguros', en: 'Condition linked to salary domiciliation and bundled insurance' } },
+    { bank: 'Millennium bcp', type: 'Taxa variável', rate: 'Spread desde 0.80%', note: { pt: 'Campanhas para clientes digitalmente ativos', en: 'Campaigns for digitally active clients' } },
+    { bank: 'Novo Banco', type: 'Taxa fixa inicial', rate: 'Taxa promocional inicial', note: { pt: 'Oferta depende de perfil de risco e prazo', en: 'Offer depends on risk profile and term' } },
+    { bank: 'Santander Totta', type: 'Taxa mista', rate: 'Condições bonificadas', note: { pt: 'Bonificação com produtos associados', en: 'Discount with linked products' } },
+    { bank: 'Banco CTT', type: 'Taxa variável', rate: 'Spread competitivo', note: { pt: 'Simulações online com pré análise rápida', en: 'Online simulations with quick pre analysis' } },
+  ];
 
   /* ═══════════════════════════════════════
      LANGUAGE / TRANSLATION ENGINE
@@ -48,6 +56,8 @@
     renderLearnCards();
     renderFAQ();
     if (chartsInitialized) updateChartLabels();
+    renderBankOffers();
+    updateAIBrief();
 
     // Sync quiz step label with current step number
     const stepTextEl = document.getElementById('quiz-step-text');
@@ -246,7 +256,7 @@
       const timeline = answers[2];
       const obstacle = answers[3];
 
-      let icon = '🎯';
+      let icon = '01';
       let desc = '';
       let insights = [];
 
@@ -255,67 +265,67 @@
       if (lang === 'pt') {
         if (income === 'under1000' || income === '1000-1500') {
           desc = 'Com o teu rendimento atual, a taxa de esforço será um desafio. ';
-          insights.push('💸 Considera aumentar fontes de rendimento ou co-titular o crédito.');
+          insights.push('Considera aumentar fontes de rendimento ou co titular o crédito.');
         } else {
           desc = 'O teu rendimento permite explorar opções de financiamento. ';
-          insights.push('✅ A tua base financeira é um bom ponto de partida.');
+          insights.push('A tua base financeira é um bom ponto de partida.');
         }
 
         if (timeline === '1-2') {
           desc += 'Planeas comprar em breve — é essencial começar já o processo de pré-aprovação.';
-          insights.push('⏰ Agenda reuniões com 3-5 bancos nos próximos 30 dias.');
+          insights.push('Agenda reuniões com 3 a 5 bancos nos próximos 30 dias.');
         } else if (timeline === 'unsure') {
           desc += 'Não ter prazo definido é normal — esta plataforma ajuda-te a criar um plano claro.';
-          insights.push('🗺️ Explora o guia de jornada para criar uma linha temporal realista.');
-          icon = '🧭';
+          insights.push('Explora o guia de jornada para criar uma linha temporal realista.');
+          icon = '02';
         } else {
           desc += 'Tens tempo para planear e poupar — usa-o estrategicamente.';
-          insights.push('📈 Define uma meta mensal de poupança com o simulador de tempo.');
+          insights.push('Define uma meta mensal de poupança com o simulador de tempo.');
         }
 
         if (obstacle === 'savings') {
-          insights.push('🏦 Conhece o programa de Garantia Pública para Jovens (até 100% financiamento).');
+          insights.push('Conhece o programa de Garantia Pública para Jovens com financiamento até cem por cento.');
         } else if (obstacle === 'income') {
-          insights.push('💼 Com a regra dos 35%, o teu foco deve ser maximizar rendimento ou reduzir despesas.');
+          insights.push('Com a regra dos 35 por cento, o teu foco deve ser maximizar rendimento ou reduzir despesas.');
         } else if (obstacle === 'knowledge') {
-          insights.push('📚 A secção "Aprender" explica todos os conceitos-chave de forma simples.');
-          icon = '📖';
+          insights.push('A secção Aprender explica os conceitos chave de forma simples.');
+          icon = '03';
         } else {
-          insights.push('🧩 Segue o guia de jornada passo a passo — o processo é mais simples do que parece.');
+          insights.push('Segue o guia de jornada passo a passo. O processo é mais simples do que parece.');
         }
-        insights.push('👥 70% das pessoas como tu partilham as mesmas preocupações. Não estás sozinho/a.');
+        insights.push('Setenta por cento das pessoas como tu partilham as mesmas preocupações. Não estás sozinho.');
       } else {
         if (income === 'under1000' || income === '1000-1500') {
           desc = 'With your current income, the effort rate will be challenging. ';
-          insights.push('💸 Consider increasing income sources or co-borrowing.');
+          insights.push('Consider increasing income sources or adding a co borrower.');
         } else {
           desc = 'Your income allows you to explore financing options. ';
-          insights.push('✅ Your financial base is a good starting point.');
+          insights.push('Your financial base is a good starting point.');
         }
 
         if (timeline === '1-2') {
           desc += "You're planning to buy soon — start the pre-approval process now.";
-          insights.push('⏰ Schedule meetings with 3-5 banks in the next 30 days.');
+          insights.push('Schedule meetings with 3 to 5 banks in the next 30 days.');
         } else if (timeline === 'unsure') {
           desc += "Not having a defined timeline is normal — this platform helps you create a clear plan.";
-          insights.push('🗺️ Explore the journey guide to create a realistic timeline.');
-          icon = '🧭';
+          insights.push('Explore the journey guide to create a realistic timeline.');
+          icon = '02';
         } else {
           desc += 'You have time to plan and save — use it strategically.';
-          insights.push('📈 Set a monthly savings goal with the time simulator.');
+          insights.push('Set a monthly savings goal with the time simulator.');
         }
 
         if (obstacle === 'savings') {
-          insights.push('🏦 Learn about the Youth Public Guarantee program (up to 100% financing).');
+          insights.push('Learn about the Youth Public Guarantee program with up to full financing.');
         } else if (obstacle === 'income') {
-          insights.push("💼 With the 35% rule, your focus should be maximizing income or reducing expenses.");
+          insights.push('With the 35 percent rule, your focus should be maximizing income or reducing expenses.');
         } else if (obstacle === 'knowledge') {
-          insights.push('📚 The "Learn" section explains all key concepts simply.');
-          icon = '📖';
+          insights.push('The Learn section explains all key concepts simply.');
+          icon = '03';
         } else {
-          insights.push('🧩 Follow the step-by-step journey guide — the process is simpler than it seems.');
+          insights.push('Follow the step by step journey guide. The process is simpler than it seems.');
         }
-        insights.push("👥 70% of people like you share the same concerns. You're not alone.");
+        insights.push('Seventy percent of people like you share the same concerns. You are not alone.');
       }
 
       document.getElementById('result-icon').textContent = icon;
@@ -522,6 +532,131 @@
   }
 
   /* ═══════════════════════════════════════
+     MARKET INTELLIGENCE
+     ═══════════════════════════════════════ */
+  function initMarketIntel() {
+    const section = document.getElementById('mercado');
+    if (!section) return;
+
+    renderBankOffers();
+    refreshMarketData();
+    updateAIBrief();
+
+    const refreshBtn = document.getElementById('ai-refresh');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        refreshMarketData();
+        updateAIBrief();
+      });
+    }
+
+    ['aff-salary', 'aff-savings', 'aff-expenses', 'mort-price', 'mort-rate'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', updateAIBrief);
+    });
+    document.querySelectorAll('.quiz-option').forEach(btn => btn.addEventListener('click', updateAIBrief));
+  }
+
+  async function refreshMarketData() {
+    const fallback = { referenceRate: 1.8, inflation: 2.4, lending: 4.2, updatedAt: new Date().getFullYear().toString() };
+    try {
+      const [referenceRes, inflationRes, lendingRes] = await Promise.all([
+        fetch('https://api.worldbank.org/v2/country/PRT/indicator/FR.INR.RINR?format=json&per_page=12'),
+        fetch('https://api.worldbank.org/v2/country/PRT/indicator/FP.CPI.TOTL.ZG?format=json&per_page=12'),
+        fetch('https://api.worldbank.org/v2/country/PRT/indicator/FR.INR.LEND?format=json&per_page=12')
+      ]);
+      const [referenceJson, inflationJson, lendingJson] = await Promise.all([
+        referenceRes.json(),
+        inflationRes.json(),
+        lendingRes.json()
+      ]);
+
+      const refData = extractWorldBankValue(referenceJson);
+      const infData = extractWorldBankValue(inflationJson);
+      const lendData = extractWorldBankValue(lendingJson);
+
+      MARKET_STATE.referenceRate = refData.value ?? fallback.referenceRate;
+      MARKET_STATE.inflation = infData.value ?? fallback.inflation;
+      MARKET_STATE.lending = lendData.value ?? fallback.lending;
+      MARKET_STATE.updatedAt = refData.year || infData.year || lendData.year || fallback.updatedAt;
+    } catch (error) {
+      MARKET_STATE.referenceRate = fallback.referenceRate;
+      MARKET_STATE.inflation = fallback.inflation;
+      MARKET_STATE.lending = fallback.lending;
+      MARKET_STATE.updatedAt = fallback.updatedAt;
+    }
+
+    renderMarketIndicators();
+    updateAIBrief();
+  }
+
+  function extractWorldBankValue(payload) {
+    const data = Array.isArray(payload?.[1]) ? payload[1] : [];
+    const valid = data.find(row => typeof row?.value === 'number');
+    if (!valid) return { value: null, year: null };
+    return { value: Number(valid.value), year: valid.date || null };
+  }
+
+  function renderMarketIndicators() {
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+    setText('mkt-euribor', `${MARKET_STATE.referenceRate.toFixed(2)}%`);
+    setText('mkt-inflation', `${MARKET_STATE.inflation.toFixed(2)}%`);
+    setText('mkt-lending', `${MARKET_STATE.lending.toFixed(2)}%`);
+    setText('mkt-updated', MARKET_STATE.updatedAt || (currentLang === 'pt' ? 'Sem data' : 'No date'));
+  }
+
+  function renderBankOffers() {
+    const tbody = document.getElementById('bank-offers-body');
+    if (!tbody) return;
+    tbody.innerHTML = BANK_OFFERS_PT.map(row => `
+      <tr>
+        <td>${row.bank}</td>
+        <td>${row.type}</td>
+        <td>${row.rate}</td>
+        <td>${row.note[currentLang]}</td>
+      </tr>
+    `).join('');
+  }
+
+  function updateAIBrief() {
+    const target = document.getElementById('ai-brief');
+    if (!target) return;
+
+    const salary = parseFloat(document.getElementById('aff-salary')?.value || '0');
+    const savings = parseFloat(document.getElementById('aff-savings')?.value || '0');
+    const expenses = parseFloat(document.getElementById('aff-expenses')?.value || '0');
+    const affordabilityBuffer = Math.max(0, salary - expenses);
+    const ratePressure = (MARKET_STATE.lending ?? 4.2) + (MARKET_STATE.inflation ?? 2.4);
+    const savingsLevel = savings >= 30000 ? 'high' : savings >= 12000 ? 'medium' : 'low';
+
+    if (currentLang === 'pt') {
+      let tone = 'moderado';
+      if (ratePressure >= 7) tone = 'exigente';
+      if (ratePressure <= 5) tone = 'favorável';
+
+      const savingsTip = savingsLevel === 'high'
+        ? 'Tens base de entrada sólida para negociar com vários bancos.'
+        : savingsLevel === 'medium'
+          ? 'A tua poupança já permite avançar para pré aprovação com foco em imóveis compatíveis.'
+          : 'A prioridade deve ser reforçar poupança e reduzir encargos fixos.';
+
+      target.textContent = `Com os dados atuais, o contexto de mercado está ${tone}. Taxa real ${MARKET_STATE.referenceRate?.toFixed(2) || '1.80'} por cento, inflação ${MARKET_STATE.inflation?.toFixed(2) || '2.40'} por cento e taxa média de empréstimo ${MARKET_STATE.lending?.toFixed(2) || '4.20'} por cento. O teu excedente mensal estimado é ${fmt(affordabilityBuffer)} euros. ${savingsTip}`;
+    } else {
+      const pressure = ratePressure >= 7 ? 'demanding' : ratePressure <= 5 ? 'favorable' : 'balanced';
+      const savingsTip = savingsLevel === 'high'
+        ? 'Your savings base is strong enough to negotiate across several banks.'
+        : savingsLevel === 'medium'
+          ? 'Your savings level supports pre approval for homes within a disciplined budget.'
+          : 'Your next step should focus on saving growth and fixed cost reduction.';
+
+      target.textContent = `Current market context is ${pressure}. Real rate ${MARKET_STATE.referenceRate?.toFixed(2) || '1.80'} percent, inflation ${MARKET_STATE.inflation?.toFixed(2) || '2.40'} percent and average lending rate ${MARKET_STATE.lending?.toFixed(2) || '4.20'} percent. Your estimated monthly buffer is ${fmt(affordabilityBuffer)} euros. ${savingsTip}`;
+    }
+  }
+
+  /* ═══════════════════════════════════════
      SIMULATORS
      ═══════════════════════════════════════ */
   function initSimulators() {
@@ -624,8 +759,8 @@
           : '⚠️ You need a high income for this payment. Consider a longer term or a more affordable property.';
       } else if (salaryNeeded > 1500) {
         hint.textContent = currentLang === 'pt'
-          ? '💡 Com um rendimento médio, esta prestação é possível mas exigente. Mantém a taxa de esforço abaixo dos 35%.'
-          : '💡 With an average income, this payment is possible but demanding. Keep the effort rate below 35%.';
+          ? 'Com um rendimento médio, esta prestação é possível mas exigente. Mantém a taxa de esforço abaixo de 35 por cento.'
+          : 'With an average income, this payment is possible but demanding. Keep the effort rate below 35 percent.';
       } else {
         hint.textContent = currentLang === 'pt'
           ? '✅ Esta prestação está ao alcance da maioria dos rendimentos médios em Portugal.'
@@ -673,22 +808,22 @@
       document.getElementById('aff-gauge-fill').style.width = gaugeScore + '%';
       const status = document.getElementById('aff-gauge-status');
       if (gaugeScore >= 80) {
-        status.textContent = currentLang === 'pt' ? '🟢 Muito bom — estás quase pronto!' : '🟢 Very good — you\'re almost ready!';
+        status.textContent = currentLang === 'pt' ? 'Muito bom. Estás quase pronto.' : 'Very good. You are almost ready.';
       } else if (gaugeScore >= 40) {
-        status.textContent = currentLang === 'pt' ? '🟡 A caminho — continua a poupar.' : '🟡 On the way — keep saving.';
+        status.textContent = currentLang === 'pt' ? 'A caminho. Continua a poupar.' : 'On track. Keep saving.';
       } else {
-        status.textContent = currentLang === 'pt' ? '🔴 Ainda no início — foca-te na poupança.' : '🔴 Still early — focus on saving.';
+        status.textContent = currentLang === 'pt' ? 'Ainda no início. Foca te na poupança.' : 'Still early. Focus on savings.';
       }
 
       const hint = document.getElementById('aff-hint');
       if (maxProperty < 100000) {
         hint.textContent = currentLang === 'pt'
-          ? '💡 Com este rendimento, explora zonas mais acessíveis ou considera co-titular o crédito para aumentar a capacidade.'
-          : '💡 With this income, explore more affordable areas or consider co-borrowing to increase capacity.';
+          ? 'Com este rendimento, explora zonas mais acessíveis ou considera co titular o crédito para aumentar a capacidade.'
+          : 'With this income, explore more affordable areas or consider co borrowing to increase capacity.';
       } else {
         hint.textContent = currentLang === 'pt'
-          ? '💡 Este é um cenário estimado com prazo de 30 anos e taxa de esforço de 35%. O valor real depende do banco.'
-          : '💡 This is an estimated scenario with a 30-year term and 35% effort rate. The actual value depends on the bank.';
+          ? 'Este é um cenário estimado com prazo de 30 anos e taxa de esforço de 35 por cento. O valor real depende do banco.'
+          : 'This is an estimated scenario with a 30 year term and 35 percent effort rate. The actual value depends on the bank.';
       }
     }
 
@@ -749,11 +884,11 @@
 
       const hint = document.getElementById('time-hint');
       if (gap <= 0) {
-        hint.textContent = currentLang === 'pt' ? '🎉 Já tens poupanças suficientes para a entrada! Próximo passo: pré-aprovação bancária.' : '🎉 You already have enough savings for the deposit! Next step: bank pre-approval.';
+        hint.textContent = currentLang === 'pt' ? 'Já tens poupanças suficientes para a entrada. Próximo passo: pré aprovação bancária.' : 'You already have enough savings for the deposit. Next step: bank pre approval.';
       } else if (months <= 24) {
-        hint.textContent = currentLang === 'pt' ? '💪 Estás perto! Mantém a consistência e vais conseguir.' : '💪 You\'re close! Stay consistent and you\'ll get there.';
+        hint.textContent = currentLang === 'pt' ? 'Estás perto. Mantém a consistência e vais conseguir.' : 'You are close. Stay consistent and you will get there.';
       } else {
-        hint.textContent = currentLang === 'pt' ? '📊 Para acelerar, tenta aumentar a poupança mensal em €100 ou considerar o programa de Garantia Pública.' : '📊 To speed up, try increasing monthly savings by €100 or consider the Public Guarantee program.';
+        hint.textContent = currentLang === 'pt' ? 'Para acelerar, tenta aumentar a poupança mensal em 100 euros ou considerar o programa de Garantia Pública.' : 'To speed up, try increasing monthly savings by 100 euros or consider the Public Guarantee program.';
       }
     }
 
@@ -1069,6 +1204,12 @@
           answer = responses.imt;
         } else if (lower.includes('financ') || lower.includes('crédit') || lower.includes('credit') || lower.includes('mortgage') || lower.includes('empréstimo') || lower.includes('loan')) {
           answer = responses.financing;
+        } else if (lower.includes('mercado') || lower.includes('taxa') || lower.includes('euribor') || lower.includes('banco') || lower.includes('market') || lower.includes('rate')) {
+          const refRate = (MARKET_STATE.referenceRate ?? 1.8).toFixed(2);
+          const lendRate = (MARKET_STATE.lending ?? 4.2).toFixed(2);
+          answer = currentLang === 'pt'
+            ? `No último dado disponível, a taxa real está em ${refRate}% e a taxa média de empréstimo em ${lendRate}%. Usa esta referência para comparar propostas entre bancos e confirmar custo total no simulador.`
+            : `In the latest available data, real interest is ${refRate}% and average lending rate is ${lendRate}%. Use this as a benchmark when comparing bank offers and total cost in the simulator.`;
         } else if (lower.includes('entrada') || lower.includes('deposit') || lower.includes('sinal') || lower.includes('down payment')) {
           answer = responses.downpayment;
         } else if (lower.includes('apoio') || lower.includes('support') || lower.includes('garantia') || lower.includes('porta 65') || lower.includes('government')) {
@@ -1216,6 +1357,7 @@
     initOnboarding();
     initQuiz();
     initCharts();
+    initMarketIntel();
     initSimulators();
     renderLearnCards();
     initLearnTabs();

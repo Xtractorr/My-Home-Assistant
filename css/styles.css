@@ -10,6 +10,7 @@
   --bg-dados: #E8EFE9;
   --bg-simuladores: #EEF0F6;
   --bg-aprender: #F3EBE5;
+  --bg-mercado: #F2F4F8;
   --bg-faq: #F7F5F2;
   --bg-projeto: #EEF0F6;
   --bg-contacto: #E8EFE9;
@@ -172,6 +173,7 @@ h1, h2, h3, h4 { font-family: var(--font-heading); line-height: 1.2; }
 .section-quiz { background: var(--bg-quiz); }
 .section-dados { background: var(--bg-dados); }
 .section-simuladores { background: var(--bg-simuladores); }
+.section-mercado { background: var(--bg-mercado); }
 .section-progress { background: var(--bg-progress); }
 .section-aprender { background: var(--bg-aprender); }
 .section-faq { background: var(--bg-faq); }
@@ -205,6 +207,76 @@ h1, h2, h3, h4 { font-family: var(--font-heading); line-height: 1.2; }
   color: var(--text-secondary);
   max-width: 640px;
   margin: 0 auto;
+  line-height: 1.75;
+}
+
+/* ─── Market Intelligence ─── */
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.market-card {
+  padding: 20px;
+}
+.market-label {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.market-value {
+  font-size: 30px;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.market-value.small {
+  font-size: 16px;
+  font-family: var(--font-body);
+  font-weight: 500;
+}
+.market-offers,
+.market-ai {
+  padding: 24px;
+  margin-bottom: 18px;
+}
+.market-offers-head p {
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+.market-table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+.market-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.market-table th,
+.market-table td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.market-table th {
+  font-size: 13px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.market-ai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.market-ai-brief {
+  margin-top: 14px;
+  color: var(--text-secondary);
   line-height: 1.75;
 }
 

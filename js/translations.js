@@ -712,3 +712,102 @@ const CHATBOT_RESPONSES = {
     default: 'Good question! Explore our sections — simulators help you calculate numbers, the "Learn" section explains concepts, and FAQ has quick answers. If you have a specific question, try asking about financing, IMT, minimum deposit or government support.'
   }
 };
+
+/* ─── Professional copy overrides and market section keys ─── */
+Object.assign(T.pt, {
+  'nav.mercado': 'Mercado',
+  'onboarding.tip1': 'Testa os simuladores para explorar os teus números',
+  'onboarding.tip2': 'Consulta dados de jovens em Portugal',
+  'onboarding.tip3': 'Segue o guia de jornada para entender o processo',
+  'chatbot.status': 'Online | Resposta em segundos',
+  'hero.subtitle': 'Informação clara, dados relevantes, ferramentas interativas e um guia prático para planeares a compra da tua primeira casa com confiança.',
+  'dados.stat1.insight': 'Setenta em cada cem pessoas relatam este desafio',
+  'dados.stat2.insight': 'A principal barreira continua a ser financeira',
+  'dados.stat3.insight': 'A burocracia continua a ser uma fonte de pressão',
+  'dados.stat4.insight': 'Existem apoios, mas o conhecimento ainda é limitado',
+  'dados.chart1.insight': 'A maioria planeia comprar no médio ou longo prazo.',
+  'dados.chart2.insight': 'A dificuldade financeira é o obstáculo mais citado.',
+  'dados.chart3.insight': 'Mais de quatro em cada cinco pessoas considera o processo complexo.',
+  'dados.chart4.insight': 'A habitação afeta decisões relevantes de vida e carreira.',
+  'sim.tab1': 'Prestação',
+  'sim.tab2': 'Acessibilidade',
+  'sim.tab3': 'Tempo para comprar',
+  'sim.tab4': 'Custos totais',
+  'sim.cost.hint': 'Planeia ter entre 25 e 30 por cento do valor do imóvel para entrada e custos.',
+  'contact.success': 'Mensagem enviada com sucesso. Obrigado pelo feedback.',
+  'footer.badge1': 'Feito para Portugal',
+  'footer.badge2': 'Projeto académico',
+  'footer.disclaimer': 'Os valores apresentados são estimativas educativas. Consulta um especialista financeiro antes de tomar decisões de investimento.',
+  'market.tag': 'Mercado Portugal',
+  'market.title': 'Indicadores e oportunidades atuais',
+  'market.subtitle': 'Consulta indicadores macroeconómicos e exemplos de condições praticadas por instituições financeiras em Portugal.',
+  'market.euribor': 'Taxa de juro real',
+  'market.inflation': 'Inflação anual',
+  'market.lending': 'Taxa média de empréstimo',
+  'market.updated': 'Ano da última atualização',
+  'market.offersTitle': 'Ofertas observadas em bancos portugueses',
+  'market.offersSub': 'Referências públicas para comparação inicial antes de pedir propostas formais.',
+  'market.colBank': 'Instituição',
+  'market.colType': 'Tipo',
+  'market.colRate': 'Condição',
+  'market.colNote': 'Notas',
+  'market.aiTitle': 'Resumo assistido por IA',
+  'market.aiRefresh': 'Atualizar recomendação'
+});
+
+Object.assign(T.en, {
+  'nav.mercado': 'Market',
+  'onboarding.tip1': 'Use the simulators to explore your numbers',
+  'onboarding.tip2': 'Review data from young adults in Portugal',
+  'onboarding.tip3': 'Follow the journey guide to understand the process',
+  'chatbot.status': 'Online | Replies in seconds',
+  'hero.subtitle': 'Clear information, relevant data, interactive tools and a practical guide to plan your first home purchase with confidence.',
+  'dados.stat1.insight': 'Seventy out of one hundred people report this challenge',
+  'dados.stat2.insight': 'Financial pressure remains the main barrier',
+  'dados.stat3.insight': 'Administrative complexity remains a major source of stress',
+  'dados.stat4.insight': 'Support exists, but awareness is still limited',
+  'dados.chart1.insight': 'Most respondents expect to buy in the medium or long term.',
+  'dados.chart2.insight': 'Financial constraints are the most cited obstacle.',
+  'dados.chart3.insight': 'More than four in five respondents find the process complex.',
+  'dados.chart4.insight': 'Housing pressure affects important life and career decisions.',
+  'sim.tab1': 'Monthly payment',
+  'sim.tab2': 'Affordability',
+  'sim.tab3': 'Time to buy',
+  'sim.tab4': 'Total costs',
+  'sim.cost.hint': 'Plan to have between 25 and 30 percent of the property value available for deposit and transaction costs.',
+  'contact.success': 'Message sent successfully. Thank you for your feedback.',
+  'footer.badge1': 'Built for Portugal',
+  'footer.badge2': 'Academic project',
+  'footer.disclaimer': 'Displayed values are educational estimates. Consult a financial specialist before investment decisions.',
+  'market.tag': 'Portugal Market',
+  'market.title': 'Current indicators and opportunities',
+  'market.subtitle': 'Review macroeconomic indicators and examples of conditions currently offered by financial institutions in Portugal.',
+  'market.euribor': 'Real interest rate',
+  'market.inflation': 'Annual inflation',
+  'market.lending': 'Average lending rate',
+  'market.updated': 'Latest year available',
+  'market.offersTitle': 'Observed offers in Portuguese banks',
+  'market.offersSub': 'Public references for initial comparison before formal proposals.',
+  'market.colBank': 'Institution',
+  'market.colType': 'Type',
+  'market.colRate': 'Condition',
+  'market.colNote': 'Notes',
+  'market.aiTitle': 'AI assisted summary',
+  'market.aiRefresh': 'Refresh recommendation'
+});
+
+Object.assign(CHATBOT_RESPONSES.pt, {
+  financing: 'Em Portugal, os bancos financiam geralmente até 90 por cento do valor do imóvel. Deves considerar entrada, impostos, comissões e seguros na comparação final.',
+  imt: 'O IMT é pago no momento da compra e varia com o valor do imóvel e o tipo de habitação. Usa o simulador de custos para teres uma estimativa personalizada.',
+  downpayment: 'A entrada mínima costuma começar nos 10 por cento, mas alguns cenários exigem mais. Também deves reservar margem para custos iniciais da escritura e impostos.',
+  support: 'Os principais apoios incluem Garantia Pública para Jovens, isenções fiscais para elegíveis e programas de arrendamento apoiado como Porta 65.',
+  default: 'Posso ajudar com financiamento, impostos, entrada mínima, oportunidades em bancos e leitura do mercado atual.'
+});
+
+Object.assign(CHATBOT_RESPONSES.en, {
+  financing: 'In Portugal, banks often finance up to 90 percent of property value. Include deposit, taxes, fees and insurance when comparing proposals.',
+  imt: 'IMT is paid at purchase and depends on property value and usage type. Use the cost simulator for a personalized estimate.',
+  downpayment: 'The minimum deposit often starts at 10 percent, though some profiles may require more. Reserve additional cash for deed and tax costs.',
+  support: 'Main support includes Youth Public Guarantee, eligible tax exemptions and rental support schemes such as Porta 65.',
+  default: 'I can help with financing, taxes, minimum deposit, bank opportunities and market interpretation.'
+});
