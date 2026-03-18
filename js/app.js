@@ -19,6 +19,37 @@
     { bank: 'Santander Totta', type: 'Taxa mista', rate: 'Condições bonificadas', note: { pt: 'Bonificação com produtos associados', en: 'Discount with linked products' } },
     { bank: 'Banco CTT', type: 'Taxa variável', rate: 'Spread competitivo', note: { pt: 'Simulações online com pré análise rápida', en: 'Online simulations with quick pre analysis' } },
   ];
+  const HOUSING_FALLBACK = [
+    { title: 'T2 luminoso perto do metro', price: '€325 000', location: 'Lisboa • Arroios', url: 'https://www.imovirtual.com/', source: 'Imovirtual' },
+    { title: 'T1 renovado com varanda', price: '€245 000', location: 'Porto • Cedofeita', url: 'https://www.idealista.pt/', source: 'Idealista' },
+    { title: 'T3 com estacionamento e arrecadação', price: '€410 000', location: 'Braga • Real', url: 'https://www.imovirtual.com/', source: 'Imovirtual' },
+    { title: 'Studio junto ao rio', price: '€189 000', location: 'Lisboa • Alcântara', url: 'https://www.idealista.pt/', source: 'Idealista' },
+  ];
+  const HOUSING_STATE = {
+    items: HOUSING_FALLBACK,
+    source: 'imovirtual',
+    location: 'Lisboa',
+    fallback: true,
+    status: 'idle',
+    filters: { maxBudget: null, minRooms: 0, areaScope: 'nearby', sort: 'relevance' }
+  };
+  const HOUSING_SOURCES = {
+    imovirtual: {
+      id: 'imovirtual',
+      domain: 'imovirtual.com',
+      label: 'Imovirtual',
+      buildTargetUrl: (q, areaScope) => buildImovirtualUrl(q, areaScope),
+    },
+    idealista: {
+      id: 'idealista',
+      domain: 'idealista.pt',
+      label: 'Idealista',
+      buildTargetUrl: (q, areaScope) => {
+        const query = areaScope === 'all-lisbon-towns' ? 'Lisboa' : (q || 'Lisboa');
+        return `https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(query)}`;
+      },
+    }
+  };
 
   /* ═══════════════════════════════════════
      LANGUAGE / TRANSLATION ENGINE
@@ -58,6 +89,8 @@
     if (chartsInitialized) updateChartLabels();
     renderBankOffers();
     updateAIBrief();
+    renderHousingListings(HOUSING_STATE.items, HOUSING_STATE.fallback);
+    renderHousingStatus(HOUSING_STATE.status);
 
     // Sync quiz step label with current step number
     const stepTextEl = document.getElementById('quiz-step-text');
@@ -657,6 +690,410 @@
   }
 
   /* ═══════════════════════════════════════
+     HOUSING LISTINGS (SCRAPED PORTALS)
+     ═══════════════════════════════════════ */
+  function slugifyLocation(value) {
+    return (value || '')
+      .toString()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  function buildImovirtualUrl(location, areaScope) {
+    if (areaScope === 'all-lisbon-towns') {
+      return 'https://www.imovirtual.com/pt/resultados/comprar/apartamento/lisboa';
+    }
+    const cityMap = {
+      lisboa: 'lisboa/lisboa',
+      porto: 'porto/porto',
+      braga: 'braga/braga',
+      setubal: 'setubal/setubal',
+      aveiro: 'aveiro/aveiro',
+      faro: 'faro/faro',
+      leiria: 'leiria/leiria',
+      coimbra: 'coimbra/coimbra'
+    };
+    const key = slugifyLocation(location) || 'lisboa';
+    const locationPath = cityMap[key] || cityMap.lisboa;
+    return `https://www.imovirtual.com/pt/resultados/comprar/apartamento/${locationPath}`;
+  }
+
+  function buildProxyUrls(url) {
+    const encoded = encodeURIComponent(url);
+    return [
+      `https://api.allorigins.win/raw?url=${encoded}`,
+      `https://api.codetabs.com/v1/proxy/?quest=${encoded}`,
+      `https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`
+    ];
+  }
+
+  function isBlockedScrapeResponse(html) {
+    const text = (html || '').toLowerCase();
+    return text.includes('please enable js and disable any ad blocker')
+      || text.includes('captcha')
+      || text.includes('access denied');
+  }
+
+  function initHousingListings() {
+    const form = document.getElementById('housing-form');
+    const grid = document.getElementById('housing-grid');
+    const statusEl = document.getElementById('housing-status');
+    const sourceSelect = document.getElementById('housing-source');
+    const locationInput = document.getElementById('housing-location');
+    const budgetInput = document.getElementById('housing-budget');
+    const roomsSelect = document.getElementById('housing-rooms');
+    const scopeSelect = document.getElementById('housing-area-scope');
+    const sortSelect = document.getElementById('housing-sort');
+    if (!form || !grid || !statusEl || !sourceSelect || !locationInput) return;
+
+    sourceSelect.value = HOUSING_STATE.source;
+    if (!locationInput.value) locationInput.value = HOUSING_STATE.location;
+    if (budgetInput) budgetInput.value = HOUSING_STATE.filters.maxBudget ? String(HOUSING_STATE.filters.maxBudget) : '';
+    if (roomsSelect) roomsSelect.value = String(HOUSING_STATE.filters.minRooms || 0);
+    if (scopeSelect) scopeSelect.value = HOUSING_STATE.filters.areaScope;
+    if (sortSelect) sortSelect.value = HOUSING_STATE.filters.sort;
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      loadHousingListings();
+    });
+
+    loadHousingListings();
+  }
+
+  async function loadHousingListings() {
+    const sourceSelect = document.getElementById('housing-source');
+    const locationInput = document.getElementById('housing-location');
+    const source = sourceSelect?.value || HOUSING_STATE.source;
+    const location = (locationInput?.value || HOUSING_STATE.location || 'Lisboa').trim() || 'Lisboa';
+    const filters = readHousingFilters(location);
+
+    HOUSING_STATE.source = source;
+    HOUSING_STATE.location = location;
+    HOUSING_STATE.filters = filters;
+
+    renderHousingStatus('loading');
+    try {
+      const listings = await fetchHousingListings(source, location, filters.areaScope);
+      const filtered = applyHousingCriteria(listings, filters, location);
+      if (!filtered.length) throw new Error('empty');
+      HOUSING_STATE.items = filtered;
+      HOUSING_STATE.fallback = false;
+      renderHousingListings(filtered, false);
+      renderHousingStatus('success', T[currentLang]?.['housing.lastUpdated'] || '');
+    } catch (error) {
+      const isEmpty = error?.message === 'empty';
+      const fallbackFiltered = applyHousingCriteria(HOUSING_FALLBACK, filters, location);
+      HOUSING_STATE.items = fallbackFiltered.length ? fallbackFiltered : HOUSING_FALLBACK;
+      HOUSING_STATE.fallback = true;
+      renderHousingListings(HOUSING_STATE.items, true);
+      renderHousingStatus(isEmpty ? 'empty' : 'error');
+    }
+  }
+
+  async function fetchHousingListings(sourceId, location, areaScope) {
+    const cfg = HOUSING_SOURCES[sourceId] || HOUSING_SOURCES.imovirtual;
+    const targetUrl = cfg.buildTargetUrl(location || 'Lisboa', areaScope);
+    const proxyUrls = buildProxyUrls(targetUrl);
+    let lastError = new Error('network');
+
+    for (const proxyUrl of proxyUrls) {
+      try {
+        const res = await fetch(proxyUrl, { headers: { 'Accept': 'text/html' } });
+        if (!res.ok) {
+          lastError = new Error('network');
+          continue;
+        }
+        const html = await res.text();
+        if (isBlockedScrapeResponse(html)) {
+          lastError = new Error('blocked');
+          continue;
+        }
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const parsed = parseHousingListings(doc, html, cfg);
+        if (parsed.length) return parsed.slice(0, 8);
+        lastError = new Error('empty');
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('network');
+      }
+    }
+
+    throw lastError;
+  }
+
+  function parseHousingListings(doc, rawHtml, cfg) {
+    const fromJson = extractListingsFromJsonLd(doc, cfg.label, cfg.domain);
+    if (fromJson.length) return dedupeListings(fromJson);
+    const fromDom = scrapeListingCards(doc, cfg, rawHtml);
+    if (fromDom.length) return dedupeListings(fromDom);
+    const fromMarkdown = extractListingsFromMarkdown(rawHtml, cfg);
+    if (fromMarkdown.length) return dedupeListings(fromMarkdown);
+    return [];
+  }
+
+  function extractListingsFromMarkdown(rawHtml, cfg) {
+    if (typeof rawHtml !== 'string') return [];
+    const out = [];
+    const re = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    for (const match of rawHtml.matchAll(re)) {
+      const title = (match[1] || '').trim();
+      const url = (match[2] || '').trim();
+      if (!title || !url || !isListingUrl(url, cfg)) continue;
+      out.push(normalizeListing({ title, price: '', location: '', url, source: cfg.label }, cfg.domain));
+      if (out.length >= 12) break;
+    }
+    return out;
+  }
+
+  function isListingUrl(url, cfg) {
+    if (!url || !cfg) return false;
+    if (cfg.id === 'imovirtual') return /imovirtual\.com\/pt\/anuncio\//i.test(url);
+    if (cfg.id === 'idealista') return /idealista\.(pt|com)\/imovel\//i.test(url);
+    return url.includes(cfg.domain);
+  }
+
+  function extractListingsFromJsonLd(doc, sourceLabel, domain) {
+    const results = [];
+    doc.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      try {
+        const parsed = JSON.parse(script.textContent.trim());
+        const payloads = Array.isArray(parsed) ? parsed : [parsed];
+        payloads.forEach(entry => {
+          if (Array.isArray(entry?.itemListElement)) {
+            entry.itemListElement.forEach(itemEntry => {
+              const item = itemEntry.item || itemEntry;
+              const url = normalizeUrl(item?.url || itemEntry?.url, domain);
+              const title = item?.name || item?.title;
+              const priceVal = item?.offers?.price || item?.offers?.lowPrice || item?.price;
+              const currency = item?.offers?.priceCurrency || '';
+              const price = priceVal ? `${currency ? currency + ' ' : ''}${priceVal}` : '';
+              const location = item?.address?.addressLocality || item?.address?.streetAddress || item?.address || '';
+              if (title && url) {
+                results.push(normalizeListing({ title, price, location, url, source: sourceLabel }, domain));
+              }
+            });
+          }
+        });
+      } catch (err) {
+        // ignore malformed JSON-LD
+      }
+    });
+    return results;
+  }
+
+  function scrapeListingCards(doc, cfg, rawHtml) {
+    const selectors = {
+      title: ['[data-testid*="title"]', '[data-cy*="title"]', '.offer-title', '.item-title', 'h2', 'h3'],
+      price: ['[data-testid*="price"]', '[data-cy*="price"]', '.price', '.item-price', '[class*="price"]'],
+      location: ['[data-testid*="location"]', '[data-cy*="location"]', '.location', '.item-detail-location', '[class*="location"]']
+    };
+    const results = [];
+    const cards = Array.from(doc.querySelectorAll('article, li')).slice(0, 40);
+
+    cards.forEach(card => {
+      const linkEl = card.querySelector(`a[href*="${cfg.domain}"]`) || card.querySelector('a[href]');
+      const url = normalizeUrl(linkEl?.getAttribute('href'), cfg.domain);
+      const title = pickFirstText(card, selectors.title) || (linkEl ? linkEl.textContent.trim() : '');
+      const price = pickFirstText(card, selectors.price);
+      const location = pickFirstText(card, selectors.location);
+      if (title && url && (price || location)) {
+        results.push(normalizeListing({ title, price, location, url, source: cfg.label }, cfg.domain));
+      }
+    });
+
+    if (results.length < 3) {
+      const anchors = Array.from(doc.querySelectorAll(`a[href*="${cfg.domain}"]`)).slice(0, 20);
+      anchors.forEach(anchor => {
+        const url = normalizeUrl(anchor.getAttribute('href'), cfg.domain);
+        const title = anchor.textContent.trim();
+        if (!title || !url) return;
+        const container = anchor.closest('article') || anchor.parentElement;
+        const price = pickFirstText(container, selectors.price) || pickFirstText(doc.body, selectors.price);
+        const location = pickFirstText(container, selectors.location) || '';
+        if (title && url) {
+          results.push(normalizeListing({ title, price, location, url, source: cfg.label }, cfg.domain));
+        }
+      });
+    }
+
+    if (results.length < 3 && typeof rawHtml === 'string') {
+      const priceMatches = Array.from(rawHtml.matchAll(/"price"\s*:\s*"?([0-9\.,]+)"?/g)).slice(0, 5);
+      priceMatches.forEach((m, idx) => {
+        results.push(normalizeListing({
+          title: `${cfg.label} #${idx + 1}`,
+          price: m[1] ? `€${m[1]}` : '',
+          location: '',
+          url: cfg.buildTargetUrl(HOUSING_STATE.location, HOUSING_STATE.filters.areaScope),
+          source: cfg.label
+        }, cfg.domain));
+      });
+    }
+
+    return results;
+  }
+
+  function pickFirstText(root, selectors) {
+    if (!root || !selectors) return '';
+    for (const sel of selectors) {
+      const el = root.querySelector(sel);
+      if (el && el.textContent.trim()) return el.textContent.trim();
+    }
+    return '';
+  }
+
+  function normalizeUrl(href, domain) {
+    if (!href) return '';
+    if (href.startsWith('http')) return href;
+    if (href.startsWith('//')) return `https:${href}`;
+    if (href.startsWith('/')) return `https://${domain}${href}`;
+    return `https://${domain}/${href}`;
+  }
+
+  function normalizeListing(raw, fallbackDomain) {
+    return {
+      title: (raw.title || '').trim(),
+      price: (raw.price || '').toString().trim(),
+      location: (raw.location || '').trim(),
+      url: raw.url && raw.url.startsWith('http') ? raw.url : normalizeUrl(raw.url || '', fallbackDomain),
+      source: raw.source || ''
+    };
+  }
+
+  function dedupeListings(items) {
+    const seen = new Set();
+    return items.filter(item => {
+      const key = item.url || item.title;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function readHousingFilters(location) {
+    const budgetInput = document.getElementById('housing-budget');
+    const roomsSelect = document.getElementById('housing-rooms');
+    const scopeSelect = document.getElementById('housing-area-scope');
+    const sortSelect = document.getElementById('housing-sort');
+    const budgetValue = parseInt((budgetInput?.value || '').replace(/[^\d]/g, ''), 10);
+    return {
+      maxBudget: Number.isFinite(budgetValue) && budgetValue > 0 ? budgetValue : null,
+      minRooms: parseInt(roomsSelect?.value || '0', 10) || 0,
+      areaScope: scopeSelect?.value || 'nearby',
+      sort: sortSelect?.value || 'relevance',
+      location: location || HOUSING_STATE.location
+    };
+  }
+
+  function applyHousingCriteria(listings, filters, location) {
+    const safeFilters = filters || {};
+    const filtered = (listings || []).filter(item => {
+      const price = parsePriceValue(item.price);
+      const rooms = extractRoomsValue(item);
+      if (safeFilters.maxBudget && price !== null && price > safeFilters.maxBudget) return false;
+      if (safeFilters.minRooms && rooms !== null && rooms < safeFilters.minRooms) return false;
+      if (!matchesAreaScope(item, safeFilters.areaScope, location)) return false;
+      return true;
+    });
+    return sortHousingListings(filtered, safeFilters.sort);
+  }
+
+  function parsePriceValue(text) {
+    const digits = (text || '').toString().replace(/[^\d]/g, '');
+    if (!digits) return null;
+    const parsed = parseInt(digits, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function extractRoomsValue(item) {
+    const text = `${item?.title || ''} ${item?.location || ''}`.toLowerCase();
+    if (!text) return null;
+    if (/\bt0\b|\bstudio\b/.test(text)) return 0;
+    const tMatch = text.match(/\bt\s?(\d)\b/i);
+    if (tMatch) return parseInt(tMatch[1], 10);
+    const roomMatch = text.match(/\b(\d+)\s*(quartos?|bed(room)?s?)\b/i);
+    if (roomMatch) return parseInt(roomMatch[1], 10);
+    return null;
+  }
+
+  function matchesAreaScope(item, areaScope, location) {
+    if (!areaScope || areaScope === 'any') return true;
+    const text = slugifyLocation(`${item?.location || ''} ${item?.title || ''} ${item?.url || ''}`);
+    const target = slugifyLocation(location || '');
+    if (areaScope === 'all-lisbon-towns') return isLisbonAreaText(text);
+    if (areaScope === 'nearby' && target) return text.includes(target);
+    return true;
+  }
+
+  function isLisbonAreaText(text) {
+    if (!text) return false;
+    const lisbonAreas = ['lisboa', 'amadora', 'odivelas', 'oeiras', 'cascais', 'sintra', 'almada', 'loures', 'mafra', 'seixal', 'barreiro', 'odivelas'];
+    return lisbonAreas.some(area => text.includes(area));
+  }
+
+  function sortHousingListings(listings, sortKey) {
+    if (!Array.isArray(listings)) return [];
+    const out = listings.slice();
+    if (sortKey === 'price-asc') {
+      out.sort((a, b) => (parsePriceValue(a.price) ?? Number.MAX_SAFE_INTEGER) - (parsePriceValue(b.price) ?? Number.MAX_SAFE_INTEGER));
+      return out;
+    }
+    if (sortKey === 'price-desc') {
+      out.sort((a, b) => (parsePriceValue(b.price) ?? -1) - (parsePriceValue(a.price) ?? -1));
+      return out;
+    }
+    if (sortKey === 'rooms-desc') {
+      out.sort((a, b) => (extractRoomsValue(b) ?? -1) - (extractRoomsValue(a) ?? -1));
+      return out;
+    }
+    return out;
+  }
+
+  function renderHousingStatus(state, customText) {
+    HOUSING_STATE.status = state;
+    const el = document.getElementById('housing-status');
+    if (!el) return;
+    const copy = T[currentLang] || {};
+    const text = customText || (state === 'loading'
+      ? copy['housing.loading']
+      : state === 'error'
+        ? copy['housing.error']
+        : state === 'empty'
+          ? copy['housing.empty']
+          : '');
+    el.textContent = text || '';
+    el.style.display = text ? 'block' : 'none';
+  }
+
+  function renderHousingListings(listings, isFallback) {
+    const grid = document.getElementById('housing-grid');
+    if (!grid) return;
+    const copy = T[currentLang] || {};
+    if (!listings || !listings.length) {
+      grid.innerHTML = '';
+      return;
+    }
+    grid.innerHTML = listings.slice(0, 8).map(item => `
+      <article class="listing-card glass">
+        <div class="listing-top">
+          <span class="listing-badge ${isFallback ? 'badge-fallback' : 'badge-live'}">${isFallback ? (copy['housing.badge.fallback'] || 'Sample') : (copy['housing.badge.live'] || 'Live')}</span>
+          <span class="listing-source">${escapeHtml(item.source || '')}</span>
+        </div>
+        <a class="listing-title" href="${item.url}" target="_blank" rel="noopener">
+          ${escapeHtml(item.title || '')}
+        </a>
+        <div class="listing-price">${escapeHtml(item.price || '')}</div>
+        <div class="listing-location">${escapeHtml(item.location || '')}</div>
+        <div class="listing-actions">
+          <a class="btn btn-ghost" href="${item.url}" target="_blank" rel="noopener">${copy['housing.seeListing'] || 'See listing'}</a>
+        </div>
+      </article>
+    `).join('');
+  }
+
+  /* ═══════════════════════════════════════
      SIMULATORS
      ═══════════════════════════════════════ */
   function initSimulators() {
@@ -710,6 +1147,15 @@
 
   function fmt(n) {
     return Math.round(n).toLocaleString('pt-PT');
+  }
+
+  function escapeHtml(str) {
+    return (str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   /* ── Mortgage Calculator ── */
@@ -1358,6 +1804,7 @@
     initQuiz();
     initCharts();
     initMarketIntel();
+    initHousingListings();
     initSimulators();
     renderLearnCards();
     initLearnTabs();

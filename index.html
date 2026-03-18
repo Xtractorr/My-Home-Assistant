@@ -85,6 +85,7 @@
         <li><a href="#simuladores" class="nav-link" data-translate="nav.simuladores">Simuladores</a></li>
         <li><a href="#dados" class="nav-link" data-translate="nav.dados">Dados</a></li>
         <li><a href="#mercado" class="nav-link" data-translate="nav.mercado">Mercado</a></li>
+        <li><a href="#listings" class="nav-link" data-translate="nav.listings">Casas</a></li>
         <li><a href="#aprender" class="nav-link" data-translate="nav.aprender">Aprender</a></li>
         <li><a href="#faq" class="nav-link" data-translate="nav.faq">FAQ</a></li>
         <li><a href="#contacto" class="nav-link" data-translate="nav.contacto">Contacto</a></li>
@@ -412,6 +413,78 @@
         </div>
         <p id="ai-brief" class="market-ai-brief"></p>
       </div>
+    </div>
+  </section>
+
+  <!-- ===================== SECTION: LISTINGS (SCRAPED PORTALS) ===================== -->
+  <section class="section section-listings" id="listings" data-section-color="mercado">
+    <div class="container">
+      <div class="section-header center reveal">
+        <span class="section-tag" data-translate="housing.tag">Casas em Portugal</span>
+        <h2 class="section-title" data-translate="housing.title">Anúncios reais de portais fiáveis</h2>
+        <p class="section-subtitle" data-translate="housing.subtitle">Liga-te a portais portugueses (Imovirtual, Idealista) via scraping com proxy CORS, sempre com fallback seguro.</p>
+      </div>
+
+      <form class="listings-controls glass reveal" id="housing-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="housing-source" data-translate="housing.source">Fonte</label>
+            <select id="housing-source" class="text-input select-input">
+              <option value="imovirtual" data-translate="housing.source.imovirtual">Imovirtual</option>
+              <option value="idealista" data-translate="housing.source.idealista">Idealista</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="housing-location" data-translate="housing.location">Localização</label>
+            <input type="text" id="housing-location" class="text-input" placeholder="Lisboa" data-translate-placeholder="housing.locationPlaceholder" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="housing-budget" data-translate="housing.budget">Orçamento máximo (€)</label>
+            <input type="number" id="housing-budget" class="text-input" min="0" step="5000" placeholder="350000" data-translate-placeholder="housing.budgetPlaceholder" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="housing-rooms" data-translate="housing.rooms">Quartos mínimos</label>
+            <select id="housing-rooms" class="text-input select-input">
+              <option value="0" data-translate="housing.rooms.any">Qualquer</option>
+              <option value="1">1+</option>
+              <option value="2">2+</option>
+              <option value="3">3+</option>
+              <option value="4">4+</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="housing-area-scope" data-translate="housing.scope">Área</label>
+            <select id="housing-area-scope" class="text-input select-input">
+              <option value="nearby" data-translate="housing.scope.nearby">Perto da localização</option>
+              <option value="all-lisbon-towns" data-translate="housing.scope.lisbonTowns">Todos os concelhos de Lisboa</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="housing-sort" data-translate="housing.sort">Ordenar por</label>
+            <select id="housing-sort" class="text-input select-input">
+              <option value="relevance" data-translate="housing.sort.relevance">Relevância</option>
+              <option value="price-asc" data-translate="housing.sort.priceAsc">Preço: menor para maior</option>
+              <option value="price-desc" data-translate="housing.sort.priceDesc">Preço: maior para menor</option>
+              <option value="rooms-desc" data-translate="housing.sort.roomsDesc">Mais quartos</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row listings-actions">
+          <div>
+            <p class="form-hint" data-translate="housing.hint">Usa fontes públicas; pode falhar se o portal bloquear scraping.</p>
+          </div>
+          <div class="actions-right">
+            <button class="btn btn-primary" id="housing-refresh" type="submit" data-translate="housing.refresh">Ver anúncios</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="listings-status" id="housing-status" role="status"></div>
+      <div class="listings-grid" id="housing-grid" aria-live="polite"></div>
     </div>
   </section>
 
@@ -966,6 +1039,7 @@
               <li><a href="#hero" data-translate="nav.home">Início</a></li>
               <li><a href="#simuladores" data-translate="nav.simuladores">Simuladores</a></li>
               <li><a href="#dados" data-translate="nav.dados">Dados</a></li>
+              <li><a href="#listings" data-translate="nav.listings">Casas</a></li>
               <li><a href="#aprender" data-translate="nav.aprender">Aprender</a></li>
               <li><a href="#faq" data-translate="nav.faq">FAQ</a></li>
             </ul>
@@ -985,6 +1059,7 @@
             <h4 class="footer-col-title" data-translate="footer.project">Recursos</h4>
             <ul class="footer-links">
               <li><a href="#mercado" data-translate="nav.mercado">Mercado</a></li>
+              <li><a href="#listings" data-translate="nav.listings">Casas</a></li>
               <li><a href="#aprender" data-translate="nav.aprender">Aprender</a></li>
               <li><a href="#faq" data-translate="nav.faq">FAQ</a></li>
               <li><a href="#contacto" data-translate="nav.contacto">Contacto</a></li>

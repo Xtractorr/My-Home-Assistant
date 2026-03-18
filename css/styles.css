@@ -280,6 +280,80 @@ h1, h2, h3, h4 { font-family: var(--font-heading); line-height: 1.2; }
   line-height: 1.75;
 }
 
+/* ═══════════════════════════════════════
+   HOUSING LISTINGS
+   ═══════════════════════════════════════ */
+.section-listings { background: var(--bg-mercado); }
+
+.listings-controls {
+  padding: 20px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.listings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.listings-actions .actions-right { display: flex; gap: 10px; }
+
+.listings-status {
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.listings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.listing-card { padding: 18px; }
+.listing-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.listing-badge {
+  padding: 6px 10px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+  font-size: 12px;
+}
+.badge-live { background: rgba(45,95,74,0.12); color: var(--primary); }
+.badge-fallback { background: rgba(61,107,155,0.12); color: var(--accent); }
+
+.listing-title {
+  display: block;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+.listing-title:hover { color: var(--primary); }
+
+.listing-price {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  color: var(--primary);
+  margin-bottom: 6px;
+}
+.listing-location {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.listing-actions { display: flex; gap: 8px; }
+
 /* ─── Scroll Reveal Animations ─── */
 .reveal {
   opacity: 0;
