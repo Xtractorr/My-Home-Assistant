@@ -82,10 +82,10 @@
 
       <ul class="navbar-links" id="navbar-links" role="list">
         <li><a href="#hero" class="nav-link active" data-translate="nav.home">Início</a></li>
-        <li><a href="#simuladores" class="nav-link" data-translate="nav.simuladores">Simuladores</a></li>
         <li><a href="#dados" class="nav-link" data-translate="nav.dados">Dados</a></li>
         <li><a href="#mercado" class="nav-link" data-translate="nav.mercado">Mercado</a></li>
         <li><a href="#listings" class="nav-link" data-translate="nav.listings">Casas</a></li>
+        <li><a href="#simuladores" class="nav-link" data-translate="nav.simuladores">Simuladores</a></li>
         <li><a href="#aprender" class="nav-link" data-translate="nav.aprender">Aprender</a></li>
         <li><a href="#faq" class="nav-link" data-translate="nav.faq">FAQ</a></li>
         <li><a href="#contacto" class="nav-link" data-translate="nav.contacto">Contacto</a></li>
@@ -430,6 +430,7 @@
           <div class="form-group">
             <label class="form-label" for="housing-source" data-translate="housing.source">Fonte</label>
             <select id="housing-source" class="text-input select-input">
+              <option value="all" data-translate="housing.source.all">Todos os portais</option>
               <option value="imovirtual" data-translate="housing.source.imovirtual">Imovirtual</option>
               <option value="idealista" data-translate="housing.source.idealista">Idealista</option>
             </select>
@@ -464,6 +465,51 @@
             </select>
           </div>
           <div class="form-group">
+            <label class="form-label" for="housing-area" data-translate="housing.area">Zona/Bairro</label>
+            <select id="housing-area" class="text-input select-input">
+              <option value="" data-translate="housing.area.any">Todas as zonas</option>
+              <option value="Ajuda">Ajuda</option>
+              <option value="Alcântara">Alcântara</option>
+              <option value="Alfama">Alfama</option>
+              <option value="Alvalade">Alvalade</option>
+              <option value="Areeiro">Areeiro</option>
+              <option value="Intendente">Intendente</option>
+              <option value="Arroios">Arroios</option>
+              <option value="Avenidas Novas">Avenidas Novas</option>
+              <option value="Avenida da Liberdade">Avenida da Liberdade</option>
+              <option value="Baixa">Baixa</option>
+              <option value="Bairro Alto">Bairro Alto</option>
+              <option value="Beato">Beato</option>
+              <option value="Belém">Belém</option>
+              <option value="Benfica">Benfica</option>
+              <option value="Cais do Sodré">Cais do Sodré</option>
+              <option value="Campo Grande">Campo Grande</option>
+              <option value="Campo de Ourique">Campo de Ourique</option>
+              <option value="Campolide">Campolide</option>
+              <option value="Carnide">Carnide</option>
+              <option value="Chiado">Chiado</option>
+              <option value="Estrela">Estrela</option>
+              <option value="Graça">Graça</option>
+              <option value="Lumiar">Lumiar</option>
+              <option value="Marvila">Marvila</option>
+              <option value="Misericórdia">Misericórdia</option>
+              <option value="Mouraria">Mouraria</option>
+              <option value="Odivelas">Odivelas</option>
+              <option value="Olivais">Olivais</option>
+              <option value="Parque das Nações">Parque das Nações</option>
+              <option value="Penha de França">Penha de França</option>
+              <option value="Pontinha">Pontinha</option>
+              <option value="Santa Clara">Santa Clara</option>
+              <option value="Santa Maria Maior">Santa Maria Maior</option>
+              <option value="Santo António">Santo António</option>
+              <option value="São Domingos de Benfica">São Domingos de Benfica</option>
+              <option value="São Vicente">São Vicente</option>
+              <option value="Telheiras">Telheiras</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label class="form-label" for="housing-sort" data-translate="housing.sort">Ordenar por</label>
             <select id="housing-sort" class="text-input select-input">
               <option value="relevance" data-translate="housing.sort.relevance">Relevância</option>
@@ -484,6 +530,7 @@
       </form>
 
       <div class="listings-status" id="housing-status" role="status"></div>
+      <div class="listings-actions-alt" id="housing-alt-actions" style="display:none"></div>
       <div class="listings-grid" id="housing-grid" aria-live="polite"></div>
     </div>
   </section>

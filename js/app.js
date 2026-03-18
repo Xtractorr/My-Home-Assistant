@@ -27,11 +27,14 @@
   ];
   const HOUSING_STATE = {
     items: HOUSING_FALLBACK,
-    source: 'imovirtual',
+    source: 'all',
     location: 'Lisboa',
     fallback: true,
     status: 'idle',
-    filters: { maxBudget: null, minRooms: 0, areaScope: 'nearby', sort: 'relevance' }
+    filters: { maxBudget: null, minRooms: 0, areaScope: 'nearby', area: '', sort: 'relevance' },
+    relatedItems: [],
+    relatedFallback: false,
+    hasPendingRelated: false
   };
   const HOUSING_SOURCES = {
     imovirtual: {
@@ -39,6 +42,7 @@
       domain: 'imovirtual.com',
       label: 'Imovirtual',
       buildTargetUrl: (q, areaScope) => buildImovirtualUrl(q, areaScope),
+      buildAlternativeUrls: (q, areaScope) => buildImovirtualAlternativeUrls(q, areaScope),
     },
     idealista: {
       id: 'idealista',
@@ -47,6 +51,13 @@
       buildTargetUrl: (q, areaScope) => {
         const query = areaScope === 'all-lisbon-towns' ? 'Lisboa' : (q || 'Lisboa');
         return `https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(query)}`;
+      },
+      buildAlternativeUrls: (q) => {
+        const slug = slugifyLocation(q || 'lisboa') || 'lisboa';
+        return [
+          `https://www.idealista.pt/comprar-casas/${slug}/`,
+          `https://www.idealista.pt/comprar-casas/lisboa/`
+        ];
       },
     }
   };
@@ -91,6 +102,7 @@
     updateAIBrief();
     renderHousingListings(HOUSING_STATE.items, HOUSING_STATE.fallback);
     renderHousingStatus(HOUSING_STATE.status);
+    renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], HOUSING_STATE.relatedFallback);
 
     // Sync quiz step label with current step number
     const stepTextEl = document.getElementById('quiz-step-text');
@@ -717,8 +729,25 @@
       coimbra: 'coimbra/coimbra'
     };
     const key = slugifyLocation(location) || 'lisboa';
-    const locationPath = cityMap[key] || cityMap.lisboa;
+    const locationPath = cityMap[key];
+    if (!locationPath) {
+      return `https://www.imovirtual.com/pt/resultados/comprar/apartamento/todo-o-pais?description=${encodeURIComponent(location || 'Lisboa')}`;
+    }
     return `https://www.imovirtual.com/pt/resultados/comprar/apartamento/${locationPath}`;
+  }
+
+  function buildImovirtualAlternativeUrls(location, areaScope) {
+    const q = (location || 'Lisboa').trim() || 'Lisboa';
+    const slug = slugifyLocation(q) || 'lisboa';
+    const urls = [
+      `https://www.imovirtual.com/pt/resultados/comprar/apartamento/todo-o-pais?description=${encodeURIComponent(q)}`,
+      `https://www.imovirtual.com/pt/comprar/?search[description]=${encodeURIComponent(q)}&search[dist]=0`,
+      `https://www.imovirtual.com/pt/resultados/comprar/apartamento/${slug}`
+    ];
+    if (areaScope === 'all-lisbon-towns') {
+      urls.push('https://www.imovirtual.com/pt/resultados/comprar/apartamento/lisboa');
+    }
+    return dedupeStrings(urls);
   }
 
   function buildProxyUrls(url) {
@@ -746,6 +775,7 @@
     const budgetInput = document.getElementById('housing-budget');
     const roomsSelect = document.getElementById('housing-rooms');
     const scopeSelect = document.getElementById('housing-area-scope');
+    const areaInput = document.getElementById('housing-area');
     const sortSelect = document.getElementById('housing-sort');
     if (!form || !grid || !statusEl || !sourceSelect || !locationInput) return;
 
@@ -754,6 +784,7 @@
     if (budgetInput) budgetInput.value = HOUSING_STATE.filters.maxBudget ? String(HOUSING_STATE.filters.maxBudget) : '';
     if (roomsSelect) roomsSelect.value = String(HOUSING_STATE.filters.minRooms || 0);
     if (scopeSelect) scopeSelect.value = HOUSING_STATE.filters.areaScope;
+    if (areaInput) areaInput.value = HOUSING_STATE.filters.area || '';
     if (sortSelect) sortSelect.value = HOUSING_STATE.filters.sort;
 
     form.addEventListener('submit', (e) => {
@@ -776,60 +807,222 @@
     HOUSING_STATE.filters = filters;
 
     renderHousingStatus('loading');
+    renderHousingAlternativeAction([], false);
     try {
       const listings = await fetchHousingListings(source, location, filters.areaScope);
-      const filtered = applyHousingCriteria(listings, filters, location);
-      if (!filtered.length) throw new Error('empty');
-      HOUSING_STATE.items = filtered;
+      const matched = buildHousingMatchSets(listings, filters, location);
+      if (!matched.exact.length) {
+        HOUSING_STATE.items = [];
+        HOUSING_STATE.relatedItems = matched.related;
+        HOUSING_STATE.hasPendingRelated = matched.related.length > 0;
+        HOUSING_STATE.relatedFallback = false;
+        renderHousingListings([], false);
+        renderHousingStatus(matched.related.length ? 'noExact' : 'empty');
+        renderHousingAlternativeAction(matched.related, false);
+        return;
+      }
+      HOUSING_STATE.items = matched.exact;
       HOUSING_STATE.fallback = false;
-      renderHousingListings(filtered, false);
+      HOUSING_STATE.relatedItems = [];
+      HOUSING_STATE.hasPendingRelated = false;
+      renderHousingListings(matched.exact, false);
       renderHousingStatus('success', T[currentLang]?.['housing.lastUpdated'] || '');
     } catch (error) {
-      const isEmpty = error?.message === 'empty';
-      const fallbackFiltered = applyHousingCriteria(HOUSING_FALLBACK, filters, location);
-      HOUSING_STATE.items = fallbackFiltered.length ? fallbackFiltered : HOUSING_FALLBACK;
+      const fallbackMatch = buildHousingMatchSets(HOUSING_FALLBACK, filters, location);
+      if (fallbackMatch.exact.length) {
+        HOUSING_STATE.items = fallbackMatch.exact;
+        HOUSING_STATE.relatedItems = [];
+        HOUSING_STATE.hasPendingRelated = false;
+      } else {
+        HOUSING_STATE.items = [];
+        HOUSING_STATE.relatedItems = fallbackMatch.related;
+        HOUSING_STATE.hasPendingRelated = fallbackMatch.related.length > 0;
+        HOUSING_STATE.relatedFallback = true;
+      }
       HOUSING_STATE.fallback = true;
       renderHousingListings(HOUSING_STATE.items, true);
-      renderHousingStatus(isEmpty ? 'empty' : 'error');
+      renderHousingStatus(HOUSING_STATE.items.length ? 'error' : (HOUSING_STATE.hasPendingRelated ? 'noExact' : 'empty'));
+      renderHousingAlternativeAction(HOUSING_STATE.relatedItems, true);
     }
   }
 
   async function fetchHousingListings(sourceId, location, areaScope) {
+    if (sourceId === 'all') {
+      const settled = await Promise.allSettled([
+        fetchHousingListingsSingle('imovirtual', location, areaScope),
+        fetchHousingListingsSingle('idealista', location, areaScope)
+      ]);
+      const merged = [];
+      settled.forEach(entry => {
+        if (entry.status === 'fulfilled' && Array.isArray(entry.value)) {
+          merged.push(...entry.value);
+        }
+      });
+      const deduped = dedupeListings(merged);
+      if (deduped.length) return deduped.slice(0, 120);
+      const firstRejected = settled.find(entry => entry.status === 'rejected');
+      throw firstRejected && firstRejected.status === 'rejected' ? firstRejected.reason : new Error('empty');
+    }
+    return fetchHousingListingsSingle(sourceId, location, areaScope);
+  }
+
+  async function fetchHousingListingsSingle(sourceId, location, areaScope) {
     const cfg = HOUSING_SOURCES[sourceId] || HOUSING_SOURCES.imovirtual;
     const targetUrl = cfg.buildTargetUrl(location || 'Lisboa', areaScope);
-    const proxyUrls = buildProxyUrls(targetUrl);
+    const alternativeUrls = typeof cfg.buildAlternativeUrls === 'function' ? cfg.buildAlternativeUrls(location || 'Lisboa', areaScope) : [];
+    const baseTargetUrls = dedupeStrings([targetUrl, ...alternativeUrls]);
+    const targetUrls = cfg.id === 'imovirtual' ? expandImovirtualTargets(baseTargetUrls) : baseTargetUrls;
     let lastError = new Error('network');
 
-    for (const proxyUrl of proxyUrls) {
-      try {
-        const res = await fetch(proxyUrl, { headers: { 'Accept': 'text/html' } });
-        if (!res.ok) {
-          lastError = new Error('network');
-          continue;
+    if (cfg.id === 'idealista') {
+      const apiListings = await tryFetchIdealistaApiListings(location || 'Lisboa', cfg);
+      if (apiListings.length) return apiListings.slice(0, 12);
+    }
+
+    const collected = [];
+    for (const nextTargetUrl of targetUrls) {
+      const proxyUrls = buildProxyUrls(nextTargetUrl);
+      for (const proxyUrl of proxyUrls) {
+        try {
+          const res = await fetch(proxyUrl, { headers: { 'Accept': 'text/html' } });
+          if (!res.ok) {
+            lastError = new Error('network');
+            continue;
+          }
+          const html = await res.text();
+          if (isBlockedScrapeResponse(html)) {
+            lastError = new Error('blocked');
+            continue;
+          }
+          const doc = new DOMParser().parseFromString(html, 'text/html');
+          const parsed = parseHousingListings(doc, html, cfg);
+          if (parsed.length) {
+            if (cfg.id !== 'imovirtual') return parsed.slice(0, 12);
+            collected.push(...parsed);
+            const uniqueCount = dedupeListings(collected).length;
+            if (uniqueCount >= 120) return dedupeListings(collected).slice(0, 120);
+            break;
+          }
+          lastError = new Error('empty');
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error('network');
         }
-        const html = await res.text();
-        if (isBlockedScrapeResponse(html)) {
-          lastError = new Error('blocked');
-          continue;
-        }
-        const doc = new DOMParser().parseFromString(html, 'text/html');
-        const parsed = parseHousingListings(doc, html, cfg);
-        if (parsed.length) return parsed.slice(0, 8);
-        lastError = new Error('empty');
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error('network');
       }
     }
+
+    if (collected.length) return dedupeListings(collected).slice(0, 120);
 
     throw lastError;
   }
 
+  function expandImovirtualTargets(urls) {
+    const out = [];
+    const addWithPage = (url, page) => {
+      if (page <= 1) return url;
+      return `${url}${url.includes('?') ? '&' : '?'}page=${page}`;
+    };
+    (urls || []).forEach(url => {
+      for (let page = 1; page <= 5; page += 1) {
+        out.push(addWithPage(url, page));
+      }
+    });
+    return dedupeStrings(out);
+  }
+
+  async function tryFetchIdealistaApiListings(location, cfg) {
+    const fromRapidApi = await tryFetchIdealistaRapidApiListings(location, cfg);
+    if (fromRapidApi.length) return fromRapidApi;
+
+    const encoded = encodeURIComponent(location || 'Lisboa');
+    const endpoints = [
+      `https://www.idealista.pt/ajax/suggest?term=${encoded}`,
+      `https://www.idealista.pt/ajax/suggest?country=pt&operation=sale&locale=pt&term=${encoded}`
+    ];
+    const all = [];
+
+    for (const endpoint of endpoints) {
+      const proxyUrls = buildProxyUrls(endpoint);
+      for (const proxyUrl of proxyUrls) {
+        try {
+          const res = await fetch(proxyUrl, { headers: { 'Accept': 'application/json,text/plain,*/*' } });
+          if (!res.ok) continue;
+          const raw = await res.text();
+          if (isBlockedScrapeResponse(raw)) continue;
+          const parsed = JSON.parse(raw);
+          collectListingsFromUnknownJson(parsed, cfg, all);
+          if (all.length >= 8) return dedupeListings(all).slice(0, 12);
+        } catch (error) {
+          // continue to next candidate endpoint/proxy
+        }
+      }
+    }
+    return dedupeListings(all).slice(0, 12);
+  }
+
+  async function tryFetchIdealistaRapidApiListings(location, cfg) {
+    const apiCfg = getIdealistaRapidApiConfig();
+    if (!apiCfg.key) return [];
+
+    const query = encodeURIComponent(location || 'Lisboa');
+    const endpoints = [
+      `${apiCfg.baseUrl}/properties/list?location=${query}&operation=sale&country=pt&locale=pt`,
+      `${apiCfg.baseUrl}/properties/search?location=${query}&operation=sale&country=pt&locale=pt`
+    ];
+    const all = [];
+
+    for (const endpoint of endpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          headers: {
+            'X-RapidAPI-Key': apiCfg.key,
+            'X-RapidAPI-Host': apiCfg.host,
+            'Accept': 'application/json'
+          }
+        });
+        if (!res.ok) continue;
+        const raw = await res.text();
+        if (isBlockedScrapeResponse(raw)) continue;
+        const parsed = JSON.parse(raw);
+        collectListingsFromUnknownJson(parsed, cfg, all);
+        if (all.length >= 8) return dedupeListings(all).slice(0, 12);
+      } catch (error) {
+        // continue to next endpoint
+      }
+    }
+
+    return dedupeListings(all).slice(0, 12);
+  }
+
+  function collectListingsFromUnknownJson(value, cfg, out, depth) {
+    const level = depth || 0;
+    if (level > 8 || value == null) return;
+    if (Array.isArray(value)) {
+      value.forEach(entry => collectListingsFromUnknownJson(entry, cfg, out, level + 1));
+      return;
+    }
+    if (typeof value !== 'object') return;
+    const maybeUrl = normalizeUrl(value.url || value.href || value.link, cfg.domain);
+    const maybeTitle = value.title || value.name || value.description || '';
+    const maybePrice = value.price || value.priceValue || value.price_text || '';
+    const maybeLocation = value.location || value.address || value.municipality || value.city || '';
+    if (maybeUrl && maybeTitle && isListingUrl(maybeUrl, cfg)) {
+      out.push(normalizeListing({ title: maybeTitle, price: maybePrice, location: maybeLocation, url: maybeUrl, source: cfg.label }, cfg.domain));
+    }
+    Object.keys(value).forEach(key => {
+      try {
+        collectListingsFromUnknownJson(value[key], cfg, out, level + 1);
+      } catch (error) {
+        // skip invalid nested node
+      }
+    });
+  }
+
   function parseHousingListings(doc, rawHtml, cfg) {
-    const fromJson = extractListingsFromJsonLd(doc, cfg.label, cfg.domain);
+    const fromJson = extractListingsFromJsonLd(doc, cfg.label, cfg.domain).filter(item => isDirectListingLink(item.url, cfg));
     if (fromJson.length) return dedupeListings(fromJson);
     const fromDom = scrapeListingCards(doc, cfg, rawHtml);
-    if (fromDom.length) return dedupeListings(fromDom);
-    const fromMarkdown = extractListingsFromMarkdown(rawHtml, cfg);
+    if (fromDom.length) return dedupeListings(fromDom).filter(item => isDirectListingLink(item.url, cfg));
+    const fromMarkdown = extractListingsFromMarkdown(rawHtml, cfg).filter(item => isDirectListingLink(item.url, cfg));
     if (fromMarkdown.length) return dedupeListings(fromMarkdown);
     return [];
   }
@@ -843,7 +1036,7 @@
       const url = (match[2] || '').trim();
       if (!title || !url || !isListingUrl(url, cfg)) continue;
       out.push(normalizeListing({ title, price: '', location: '', url, source: cfg.label }, cfg.domain));
-      if (out.length >= 12) break;
+      if (out.length >= 120) break;
     }
     return out;
   }
@@ -896,6 +1089,7 @@
     cards.forEach(card => {
       const linkEl = card.querySelector(`a[href*="${cfg.domain}"]`) || card.querySelector('a[href]');
       const url = normalizeUrl(linkEl?.getAttribute('href'), cfg.domain);
+      if (!isListingUrl(url, cfg)) return;
       const title = pickFirstText(card, selectors.title) || (linkEl ? linkEl.textContent.trim() : '');
       const price = pickFirstText(card, selectors.price);
       const location = pickFirstText(card, selectors.location);
@@ -908,6 +1102,7 @@
       const anchors = Array.from(doc.querySelectorAll(`a[href*="${cfg.domain}"]`)).slice(0, 20);
       anchors.forEach(anchor => {
         const url = normalizeUrl(anchor.getAttribute('href'), cfg.domain);
+        if (!isListingUrl(url, cfg)) return;
         const title = anchor.textContent.trim();
         if (!title || !url) return;
         const container = anchor.closest('article') || anchor.parentElement;
@@ -916,19 +1111,6 @@
         if (title && url) {
           results.push(normalizeListing({ title, price, location, url, source: cfg.label }, cfg.domain));
         }
-      });
-    }
-
-    if (results.length < 3 && typeof rawHtml === 'string') {
-      const priceMatches = Array.from(rawHtml.matchAll(/"price"\s*:\s*"?([0-9\.,]+)"?/g)).slice(0, 5);
-      priceMatches.forEach((m, idx) => {
-        results.push(normalizeListing({
-          title: `${cfg.label} #${idx + 1}`,
-          price: m[1] ? `€${m[1]}` : '',
-          location: '',
-          url: cfg.buildTargetUrl(HOUSING_STATE.location, HOUSING_STATE.filters.areaScope),
-          source: cfg.label
-        }, cfg.domain));
       });
     }
 
@@ -946,18 +1128,64 @@
 
   function normalizeUrl(href, domain) {
     if (!href) return '';
-    if (href.startsWith('http')) return href;
-    if (href.startsWith('//')) return `https:${href}`;
-    if (href.startsWith('/')) return `https://${domain}${href}`;
-    return `https://${domain}/${href}`;
+    const raw = unwrapProxyUrl(href);
+    if (!raw) return '';
+    if (raw.startsWith('http')) return raw.replace(/^http:\/\//i, 'https://');
+    if (raw.startsWith('//')) return `https:${raw}`;
+    if (raw.startsWith('/')) return `https://${domain}${raw}`;
+    return `https://${domain}/${raw}`;
+  }
+
+  function unwrapProxyUrl(url) {
+    let value = (url || '').toString().trim();
+    if (!value) return '';
+    for (let i = 0; i < 3; i += 1) {
+      const low = value.toLowerCase();
+      if (low.startsWith('https://r.jina.ai/http://')) {
+        value = `https://${value.substring('https://r.jina.ai/http://'.length)}`;
+        continue;
+      }
+      if (low.startsWith('https://r.jina.ai/https://')) {
+        value = `https://${value.substring('https://r.jina.ai/https://'.length)}`;
+        continue;
+      }
+      if (low.startsWith('https://api.allorigins.win/raw?url=')) {
+        value = decodeURIComponent(value.split('?url=')[1] || '');
+        continue;
+      }
+      if (low.startsWith('https://api.codetabs.com/v1/proxy/?quest=')) {
+        value = decodeURIComponent(value.split('?quest=')[1] || '');
+        continue;
+      }
+      break;
+    }
+    return value;
+  }
+
+  function detectListingConfig(item) {
+    const source = (item?.source || '').toLowerCase();
+    const url = (item?.url || '').toLowerCase();
+    if (source.includes('idealista') || url.includes('idealista.')) return HOUSING_SOURCES.idealista;
+    return HOUSING_SOURCES.imovirtual;
+  }
+
+  function isDirectListingLink(url, cfg) {
+    if (!url || !cfg) return false;
+    const clean = normalizeUrl(url, cfg.domain);
+    if (!clean) return false;
+    if (cfg.id === 'imovirtual') return /^https:\/\/(www\.)?imovirtual\.com\/pt\/anuncio\//i.test(clean);
+    if (cfg.id === 'idealista') return /^https:\/\/(www\.)?idealista\.(pt|com)\/imovel\//i.test(clean);
+    return false;
   }
 
   function normalizeListing(raw, fallbackDomain) {
+    const sourceCfg = detectListingConfig(raw);
+    const normalizedUrl = normalizeUrl(raw.url || '', sourceCfg?.domain || fallbackDomain);
     return {
       title: (raw.title || '').trim(),
       price: (raw.price || '').toString().trim(),
       location: (raw.location || '').trim(),
-      url: raw.url && raw.url.startsWith('http') ? raw.url : normalizeUrl(raw.url || '', fallbackDomain),
+      url: normalizedUrl,
       source: raw.source || ''
     };
   }
@@ -972,32 +1200,139 @@
     });
   }
 
+  function dedupeStrings(items) {
+    const seen = new Set();
+    return (items || []).filter(item => {
+      if (!item || seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+  }
+
+  function getPrivateRuntimeConfig() {
+    let localCfg = {};
+    try {
+      const raw = window.localStorage.getItem('casajaPrivateConfig');
+      localCfg = raw ? JSON.parse(raw) : {};
+    } catch (error) {
+      localCfg = {};
+    }
+    const globalCfg = (typeof window !== 'undefined' && window.__CASAJA_PRIVATE__) ? window.__CASAJA_PRIVATE__ : {};
+    return { ...localCfg, ...globalCfg };
+  }
+
+  function getIdealistaRapidApiConfig() {
+    const cfg = getPrivateRuntimeConfig();
+    const host = cfg.idealistaRapidApiHost || 'idealista-com1.p.rapidapi.com';
+    return {
+      key: cfg.idealistaRapidApiKey || '',
+      host,
+      baseUrl: cfg.idealistaRapidApiBaseUrl || `https://${host}`,
+    };
+  }
+
   function readHousingFilters(location) {
     const budgetInput = document.getElementById('housing-budget');
     const roomsSelect = document.getElementById('housing-rooms');
     const scopeSelect = document.getElementById('housing-area-scope');
+    const areaInput = document.getElementById('housing-area');
     const sortSelect = document.getElementById('housing-sort');
     const budgetValue = parseInt((budgetInput?.value || '').replace(/[^\d]/g, ''), 10);
     return {
       maxBudget: Number.isFinite(budgetValue) && budgetValue > 0 ? budgetValue : null,
       minRooms: parseInt(roomsSelect?.value || '0', 10) || 0,
       areaScope: scopeSelect?.value || 'nearby',
+      area: (areaInput?.value || '').trim(),
       sort: sortSelect?.value || 'relevance',
       location: location || HOUSING_STATE.location
     };
   }
 
-  function applyHousingCriteria(listings, filters, location) {
+  function buildHousingMatchSets(listings, filters, location) {
     const safeFilters = filters || {};
-    const filtered = (listings || []).filter(item => {
-      const price = parsePriceValue(item.price);
-      const rooms = extractRoomsValue(item);
-      if (safeFilters.maxBudget && price !== null && price > safeFilters.maxBudget) return false;
-      if (safeFilters.minRooms && rooms !== null && rooms < safeFilters.minRooms) return false;
-      if (!matchesAreaScope(item, safeFilters.areaScope, location)) return false;
-      return true;
+    const direct = (listings || []).filter(item => isDirectListingLink(item?.url, detectListingConfig(item)));
+    const scored = direct.map(item => {
+      const features = extractListingFeatures(item);
+      return {
+        item,
+        features,
+        strict: matchesStrictCriteria(features, safeFilters, location),
+        score: computeListingSimilarityScore(features, safeFilters, location)
+      };
     });
-    return sortHousingListings(filtered, safeFilters.sort);
+
+    const exact = sortHousingListings(scored.filter(x => x.strict).map(x => x.item), safeFilters.sort);
+    const exactKeys = new Set(exact.map(item => item.url || item.title));
+    const related = scored
+      .filter(x => !exactKeys.has(x.item.url || x.item.title))
+      .filter(x => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(x => x.item);
+
+    return { exact, related: dedupeListings(related).slice(0, 8) };
+  }
+
+  function extractListingFeatures(item) {
+    const searchable = slugifyLocation(`${item?.title || ''} ${item?.location || ''} ${item?.url || ''}`);
+    return {
+      searchable,
+      price: parsePriceValue(item?.price),
+      rooms: extractRoomsValue(item),
+      hasLocation: !!(item?.location || '').trim()
+    };
+  }
+
+  function matchesStrictCriteria(features, filters, location) {
+    if (!features) return false;
+    const budget = filters.maxBudget;
+    const minRooms = filters.minRooms;
+    const selectedArea = slugifyLocation(filters.area || '');
+    const locationSlug = slugifyLocation(location || '');
+
+    if (budget && (features.price === null || features.price > budget)) return false;
+    if (minRooms && (features.rooms === null || features.rooms < minRooms)) return false;
+    if (filters.areaScope === 'all-lisbon-towns' && !isLisbonAreaText(features.searchable)) return false;
+    if (filters.areaScope === 'nearby' && locationSlug && !features.searchable.includes(locationSlug)) return false;
+    if (selectedArea && !features.searchable.includes(selectedArea)) return false;
+    return true;
+  }
+
+  function computeListingSimilarityScore(features, filters, location) {
+    if (!features) return 0;
+    let score = 0;
+    const budget = filters.maxBudget;
+    const minRooms = filters.minRooms;
+    const selectedArea = slugifyLocation(filters.area || '');
+    const locationSlug = slugifyLocation(location || '');
+
+    if (budget) {
+      if (features.price !== null) {
+        const diff = Math.abs(features.price - budget) / Math.max(budget, 1);
+        score += Math.max(0, 3 - (diff * 3));
+      }
+    } else if (features.price !== null) {
+      score += 0.5;
+    }
+
+    if (minRooms) {
+      if (features.rooms !== null) {
+        const roomDiff = Math.abs(features.rooms - minRooms);
+        score += Math.max(0, 3 - roomDiff);
+      }
+    } else if (features.rooms !== null) {
+      score += 0.5;
+    }
+
+    if (selectedArea) {
+      if (features.searchable.includes(selectedArea)) score += 4;
+    } else if (filters.areaScope === 'nearby' && locationSlug && features.searchable.includes(locationSlug)) {
+      score += 3;
+    } else if (filters.areaScope === 'all-lisbon-towns' && isLisbonAreaText(features.searchable)) {
+      score += 2;
+    }
+
+    if (features.hasLocation) score += 0.5;
+    return score;
   }
 
   function parsePriceValue(text) {
@@ -1029,8 +1364,23 @@
 
   function isLisbonAreaText(text) {
     if (!text) return false;
-    const lisbonAreas = ['lisboa', 'amadora', 'odivelas', 'oeiras', 'cascais', 'sintra', 'almada', 'loures', 'mafra', 'seixal', 'barreiro', 'odivelas'];
+    const lisbonAreas = [
+      'lisboa', 'ajuda', 'alcantara', 'alvalade', 'areeiro', 'arroios', 'avenidas-novas', 'beato',
+      'belem', 'benfica', 'campo-de-ourique', 'campolide', 'carnide', 'estrela', 'lumiar', 'marvila',
+      'misericordia', 'olivais', 'parque-das-nacoes', 'penha-de-franca', 'santa-clara', 'santa-maria-maior',
+      'santo-antonio', 'sao-domingos-de-benfica', 'sao-vicente',
+      'baixa', 'chiado', 'bairro-alto', 'cais-do-sodre', 'avenida-da-liberdade', 'alfama', 'graca',
+      'mouraria', 'campo-grande', 'telheiras', 'intendente', 'pontinha'
+    ];
     return lisbonAreas.some(area => text.includes(area));
+  }
+
+  function matchesSpecificArea(item, area) {
+    if (!area) return true;
+    const needle = slugifyLocation(area);
+    if (!needle) return true;
+    const text = slugifyLocation(`${item?.location || ''} ${item?.title || ''} ${item?.url || ''}`);
+    return text.includes(needle);
   }
 
   function sortHousingListings(listings, sortKey) {
@@ -1062,6 +1412,10 @@
         ? copy['housing.error']
         : state === 'empty'
           ? copy['housing.empty']
+          : state === 'noExact'
+            ? copy['housing.noExact']
+            : state === 'suggested'
+              ? copy['housing.showingRelatable']
           : '');
     el.textContent = text || '';
     el.style.display = text ? 'block' : 'none';
@@ -1071,11 +1425,12 @@
     const grid = document.getElementById('housing-grid');
     if (!grid) return;
     const copy = T[currentLang] || {};
-    if (!listings || !listings.length) {
+    const directListings = (listings || []).filter(item => isDirectListingLink(item?.url, detectListingConfig(item)));
+    if (!directListings.length) {
       grid.innerHTML = '';
       return;
     }
-    grid.innerHTML = listings.slice(0, 8).map(item => `
+    grid.innerHTML = directListings.slice(0, 8).map(item => `
       <article class="listing-card glass">
         <div class="listing-top">
           <span class="listing-badge ${isFallback ? 'badge-fallback' : 'badge-live'}">${isFallback ? (copy['housing.badge.fallback'] || 'Sample') : (copy['housing.badge.live'] || 'Live')}</span>
@@ -1091,6 +1446,33 @@
         </div>
       </article>
     `).join('');
+  }
+
+  function renderHousingAlternativeAction(relatedListings, isFallback) {
+    const container = document.getElementById('housing-alt-actions');
+    if (!container) return;
+    const copy = T[currentLang] || {};
+    const hasRelated = Array.isArray(relatedListings) && relatedListings.length > 0;
+    if (!hasRelated) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      return;
+    }
+
+    container.innerHTML = `<button class="btn btn-ghost" id="housing-show-relatable" type="button">${copy['housing.showRelatable'] || 'Show relatable listings'}</button>`;
+    container.style.display = 'block';
+    const btn = document.getElementById('housing-show-relatable');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      HOUSING_STATE.items = relatedListings.slice(0, 8);
+      HOUSING_STATE.relatedItems = [];
+      HOUSING_STATE.hasPendingRelated = false;
+      HOUSING_STATE.relatedFallback = false;
+      HOUSING_STATE.fallback = !!isFallback;
+      renderHousingListings(HOUSING_STATE.items, !!isFallback);
+      renderHousingStatus('suggested');
+      renderHousingAlternativeAction([], false);
+    });
   }
 
   /* ═══════════════════════════════════════
