@@ -19,23 +19,20 @@
     { bank: 'Santander Totta', type: 'Taxa mista', rate: 'Condições bonificadas', note: { pt: 'Bonificação com produtos associados', en: 'Discount with linked products' } },
     { bank: 'Banco CTT', type: 'Taxa variável', rate: 'Spread competitivo', note: { pt: 'Simulações online com pré análise rápida', en: 'Online simulations with quick pre analysis' } },
   ];
-  const HOUSING_FALLBACK = [
-    { title: 'T2 luminoso perto do metro', price: '€325 000', location: 'Lisboa • Arroios', url: 'https://www.imovirtual.com/', source: 'Imovirtual' },
-    { title: 'T1 renovado com varanda', price: '€245 000', location: 'Porto • Cedofeita', url: 'https://www.idealista.pt/', source: 'Idealista' },
-    { title: 'T3 com estacionamento e arrecadação', price: '€410 000', location: 'Braga • Real', url: 'https://www.imovirtual.com/', source: 'Imovirtual' },
-    { title: 'Studio junto ao rio', price: '€189 000', location: 'Lisboa • Alcântara', url: 'https://www.idealista.pt/', source: 'Idealista' },
-  ];
   const HOUSING_STATE = {
-    items: HOUSING_FALLBACK,
+    items: [],
     source: 'all',
     location: 'Lisboa',
-    fallback: true,
+    fallback: false,
     status: 'idle',
-    filters: { maxBudget: null, minRooms: 0, areaScope: 'nearby', area: '', sort: 'relevance' },
+    filters: { maxBudget: null, minRooms: 0, areaScope: 'nearby', area: '', sort: 'relevance', searchMode: 'fast' },
     relatedItems: [],
     relatedFallback: false,
-    hasPendingRelated: false
+    hasPendingRelated: false,
+    hasBootstrapLoaded: false
   };
+  const HOUSING_CACHE = new Map();
+  const HOUSING_CACHE_TTL = { fast: 60 * 1000, deep: 180 * 1000 };
   const HOUSING_SOURCES = {
     imovirtual: {
       id: 'imovirtual',
@@ -61,6 +58,46 @@
       },
     }
   };
+  const RESOURCE_TOOLS = [
+    {
+      cat: 'environment',
+      url: 'https://shademap.app/',
+      title: { pt: 'Shademap', en: 'Shademap' },
+      desc: { pt: 'Vê como a luz e sombra mudam numa rua durante o dia.', en: 'Check how sunlight and shade change across a street during the day.' }
+    },
+    {
+      cat: 'environment',
+      url: 'https://www.iqair.com/air-quality-map',
+      title: { pt: 'Noise and Air Quality Mapper', en: 'Noise and Air Quality Mapper' },
+      desc: { pt: 'Cruza qualidade do ar e contexto ambiental para avaliar a zona.', en: 'Combine air quality and local environmental context before choosing an area.' }
+    },
+    {
+      cat: 'financial',
+      url: 'https://www.numbeo.com/cost-of-living/',
+      title: { pt: 'Utility Bill Cost Estimator', en: 'Utility Bill Cost Estimator' },
+      desc: { pt: 'Estima despesas mensais de energia, agua e servicos na zona.', en: 'Estimate monthly utility costs for the area you are considering.' }
+    },
+    {
+      cat: 'property',
+      url: 'https://www.sce.pt/pesquisa-certificados/',
+      title: { pt: 'Energy Certificate Registry', en: 'Energy Certificate Registry' },
+      desc: { pt: 'Consulta certificados energeticos e eficiencia do imovel.', en: 'Check energy certificates and property efficiency ratings.' }
+    },
+    {
+      cat: 'property',
+      url: 'https://www.idealista.pt/mapa/',
+      title: { pt: 'Area Analysis Tools', en: 'Area Analysis Tools' },
+      desc: { pt: 'Analisa preco por m2, oferta e tendencias por bairro.', en: 'Explore price per square meter, inventory, and area trends.' }
+    }
+  ];
+  const LIVE_MAP_LOCATIONS = [
+    { key: 'lisboa', lat: 38.7223, lon: -9.1393, label: { pt: 'Lisboa', en: 'Lisbon' } },
+    { key: 'porto', lat: 41.1579, lon: -8.6291, label: { pt: 'Porto', en: 'Porto' } },
+    { key: 'braga', lat: 41.5454, lon: -8.4265, label: { pt: 'Braga', en: 'Braga' } },
+    { key: 'coimbra', lat: 40.2033, lon: -8.4103, label: { pt: 'Coimbra', en: 'Coimbra' } },
+    { key: 'setubal', lat: 38.5244, lon: -8.8882, label: { pt: 'Setubal', en: 'Setubal' } },
+    { key: 'faro', lat: 37.0194, lon: -7.9304, label: { pt: 'Faro', en: 'Faro' } }
+  ];
 
   /* ═══════════════════════════════════════
      LANGUAGE / TRANSLATION ENGINE
@@ -97,6 +134,8 @@
     // Rebuild dynamic content
     renderLearnCards();
     renderFAQ();
+    renderResources();
+    initResourceLiveMap();
     if (chartsInitialized) updateChartLabels();
     renderBankOffers();
     updateAIBrief();
@@ -155,6 +194,8 @@
           navLinks.forEach(l => l.classList.remove('active'));
           const active = document.querySelector(`.nav-link[href="#${id}"]`);
           if (active) active.classList.add('active');
+          const sectionColor = entry.target.getAttribute('data-section-color') || id;
+          updateNavbarTheme(sectionColor);
         }
       });
     }, { rootMargin: '-40% 0px -50% 0px' });
@@ -167,11 +208,20 @@
     });
   }
 
+  function updateNavbarTheme(section) {
+    const navbar = document.getElementById('navbar');
+    if (!navbar) return;
+    const tokens = ['hero', 'dados', 'simuladores', 'aprender', 'recursos', 'faq', 'projeto'];
+    tokens.forEach(token => navbar.classList.remove(`nav-theme-${token}`));
+    const normalized = tokens.includes(section) ? section : 'hero';
+    navbar.classList.add(`nav-theme-${normalized}`);
+  }
+
   /* ═══════════════════════════════════════
      SCROLL REVEAL ANIMATIONS
      ═══════════════════════════════════════ */
   function initScrollReveal() {
-    const revealElements = document.querySelectorAll('.reveal, .animate-fade-up, .animate-scale-in');
+    const revealElements = document.querySelectorAll('.reveal, .animate-fade-up, .animate-scale-in, .assemble');
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -186,6 +236,21 @@
     }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 
     revealElements.forEach(el => observer.observe(el));
+  }
+
+  function initTiltEffects() {
+    const cards = document.querySelectorAll('.hero-card-float, .resource-card');
+    cards.forEach(card => {
+      card.addEventListener('mousemove', (event) => {
+        const rect = card.getBoundingClientRect();
+        const x = ((event.clientX - rect.left) / rect.width) - 0.5;
+        const y = ((event.clientY - rect.top) / rect.height) - 0.5;
+        card.style.transform = `rotateX(${(-y * 4).toFixed(2)}deg) rotateY(${(x * 5).toFixed(2)}deg) translateY(-4px)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = '';
+      });
+    });
   }
 
   /* ═══════════════════════════════════════
@@ -750,13 +815,31 @@
     return dedupeStrings(urls);
   }
 
-  function buildProxyUrls(url) {
+  function buildProxyUrls(url, sourceId) {
     const encoded = encodeURIComponent(url);
+    if (sourceId === 'idealista') {
+      return [
+        `https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`,
+        `https://api.allorigins.win/raw?url=${encoded}`,
+        `https://api.codetabs.com/v1/proxy/?quest=${encoded}`
+      ];
+    }
     return [
       `https://api.allorigins.win/raw?url=${encoded}`,
       `https://api.codetabs.com/v1/proxy/?quest=${encoded}`,
       `https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`
     ];
+  }
+
+  async function fetchWithTimeout(url, options, timeoutMs) {
+    const timeout = typeof timeoutMs === 'number' ? timeoutMs : 9000;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      return await fetch(url, { ...(options || {}), signal: controller.signal });
+    } finally {
+      clearTimeout(id);
+    }
   }
 
   function isBlockedScrapeResponse(html) {
@@ -777,6 +860,7 @@
     const scopeSelect = document.getElementById('housing-area-scope');
     const areaInput = document.getElementById('housing-area');
     const sortSelect = document.getElementById('housing-sort');
+    const modeSelect = document.getElementById('housing-mode');
     if (!form || !grid || !statusEl || !sourceSelect || !locationInput) return;
 
     sourceSelect.value = HOUSING_STATE.source;
@@ -786,19 +870,21 @@
     if (scopeSelect) scopeSelect.value = HOUSING_STATE.filters.areaScope;
     if (areaInput) areaInput.value = HOUSING_STATE.filters.area || '';
     if (sortSelect) sortSelect.value = HOUSING_STATE.filters.sort;
+    if (modeSelect) modeSelect.value = HOUSING_STATE.filters.searchMode || 'fast';
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       loadHousingListings();
     });
 
-    loadHousingListings();
+    loadHousingListings({ bootstrap: true });
   }
 
-  async function loadHousingListings() {
+  async function loadHousingListings(options = {}) {
     const sourceSelect = document.getElementById('housing-source');
     const locationInput = document.getElementById('housing-location');
-    const source = sourceSelect?.value || HOUSING_STATE.source;
+    const isBootstrap = !!options.bootstrap && !HOUSING_STATE.hasBootstrapLoaded;
+    const source = isBootstrap ? 'all' : (sourceSelect?.value || HOUSING_STATE.source);
     const location = (locationInput?.value || HOUSING_STATE.location || 'Lisboa').trim() || 'Lisboa';
     const filters = readHousingFilters(location);
 
@@ -806,19 +892,76 @@
     HOUSING_STATE.location = location;
     HOUSING_STATE.filters = filters;
 
+    if (isBootstrap) {
+      renderHousingStatus('loading');
+      renderHousingAlternativeAction([], false);
+      try {
+        const firstLoad = await fetchRandomMixedFirstLoadListings(location, filters.searchMode || 'fast');
+        if (firstLoad.length) {
+          HOUSING_STATE.items = firstLoad;
+          HOUSING_STATE.fallback = false;
+          HOUSING_STATE.relatedItems = [];
+          HOUSING_STATE.hasPendingRelated = false;
+          HOUSING_STATE.hasBootstrapLoaded = true;
+          renderHousingListings(firstLoad, false);
+          renderHousingStatus('success', T[currentLang]?.['housing.bootstrapLive'] || 'A mostrar anuncios aleatorios ao vivo de Imovirtual e Idealista.');
+          return;
+        }
+      } catch (error) {
+        // Keep going with the standard loader path.
+      }
+      HOUSING_STATE.hasBootstrapLoaded = true;
+    }
+
+    const cacheKey = makeHousingCacheKey(source, location, filters);
+    const cachedListings = getHousingCache(cacheKey, filters.searchMode);
+    if (cachedListings && cachedListings.length) {
+      const matchedCached = buildHousingMatchSets(cachedListings, filters, location);
+      if (matchedCached.exact.length) {
+        HOUSING_STATE.items = matchedCached.exact;
+        HOUSING_STATE.fallback = false;
+        HOUSING_STATE.relatedItems = [];
+        HOUSING_STATE.hasPendingRelated = false;
+        renderHousingListings(matchedCached.exact, false);
+        renderHousingStatus('success', T[currentLang]?.['housing.cacheHit'] || 'Resultados em cache.');
+        renderHousingAlternativeAction([], false);
+        return;
+      }
+    }
+
     renderHousingStatus('loading');
     renderHousingAlternativeAction([], false);
     try {
-      const listings = await fetchHousingListings(source, location, filters.areaScope);
-      const matched = buildHousingMatchSets(listings, filters, location);
+      const listings = await fetchHousingListings(source, location, filters.areaScope, filters.searchMode);
+      const diversifiedListings = ensureSourceDiversity(listings, source, location);
+      setHousingCache(cacheKey, diversifiedListings);
+      const matched = buildHousingMatchSets(diversifiedListings, filters, location);
       if (!matched.exact.length) {
         HOUSING_STATE.items = [];
-        HOUSING_STATE.relatedItems = matched.related;
-        HOUSING_STATE.hasPendingRelated = matched.related.length > 0;
+        HOUSING_STATE.relatedItems = matched.related.slice(0, 8);
+        HOUSING_STATE.hasPendingRelated = HOUSING_STATE.relatedItems.length > 0;
         HOUSING_STATE.relatedFallback = false;
+        HOUSING_STATE.fallback = false;
         renderHousingListings([], false);
-        renderHousingStatus(matched.related.length ? 'noExact' : 'empty');
-        renderHousingAlternativeAction(matched.related, false);
+
+        if (source !== 'all') {
+          if (HOUSING_STATE.hasPendingRelated) {
+            renderHousingStatus('noExact');
+            renderHousingAlternativeAction(HOUSING_STATE.relatedItems, false, { allowExpandSource: true });
+          } else {
+            renderHousingStatus('sourceEmpty');
+            renderHousingAlternativeAction([], false, { allowExpandSource: true });
+          }
+        } else if (HOUSING_STATE.hasPendingRelated) {
+          renderHousingListings(HOUSING_STATE.relatedItems, false);
+          HOUSING_STATE.relatedItems = [];
+          HOUSING_STATE.hasPendingRelated = false;
+          renderHousingStatus('suggested');
+          renderHousingAlternativeAction([], false);
+        } else {
+          renderHousingStatus('empty');
+          renderHousingAlternativeAction([], false);
+        }
         return;
       }
       HOUSING_STATE.items = matched.exact;
@@ -828,29 +971,146 @@
       renderHousingListings(matched.exact, false);
       renderHousingStatus('success', T[currentLang]?.['housing.lastUpdated'] || '');
     } catch (error) {
-      const fallbackMatch = buildHousingMatchSets(HOUSING_FALLBACK, filters, location);
-      if (fallbackMatch.exact.length) {
-        HOUSING_STATE.items = fallbackMatch.exact;
+      if (source !== 'all') {
+        HOUSING_STATE.items = [];
         HOUSING_STATE.relatedItems = [];
         HOUSING_STATE.hasPendingRelated = false;
-      } else {
-        HOUSING_STATE.items = [];
-        HOUSING_STATE.relatedItems = fallbackMatch.related;
-        HOUSING_STATE.hasPendingRelated = fallbackMatch.related.length > 0;
-        HOUSING_STATE.relatedFallback = true;
+        HOUSING_STATE.relatedFallback = false;
+        HOUSING_STATE.fallback = false;
+        renderHousingListings([], false);
+        renderHousingStatus('sourceUnavailable');
+        renderHousingAlternativeAction([], false, { allowExpandSource: true });
+        return;
       }
-      HOUSING_STATE.fallback = true;
-      renderHousingListings(HOUSING_STATE.items, true);
-      renderHousingStatus(HOUSING_STATE.items.length ? 'error' : (HOUSING_STATE.hasPendingRelated ? 'noExact' : 'empty'));
-      renderHousingAlternativeAction(HOUSING_STATE.relatedItems, true);
+
+      HOUSING_STATE.items = [];
+      HOUSING_STATE.relatedItems = [];
+      HOUSING_STATE.hasPendingRelated = false;
+      HOUSING_STATE.relatedFallback = false;
+      HOUSING_STATE.fallback = false;
+      renderHousingListings([], false);
+      renderHousingStatus('error');
+      renderHousingAlternativeAction([], false);
     }
   }
 
-  async function fetchHousingListings(sourceId, location, areaScope) {
+  function ensureSourceDiversity(listings, source, location) {
+    if (source !== 'all') return Array.isArray(listings) ? listings : [];
+    const current = Array.isArray(listings) ? dedupeListings(listings) : [];
+    return current;
+  }
+
+  async function fetchRandomMixedFirstLoadListings(location, searchMode) {
+    const settled = await Promise.allSettled([
+      fetchHousingListingsSingle('imovirtual', location, 'nearby', searchMode || 'fast'),
+      fetchHousingListingsSingle('idealista', location, 'nearby', searchMode || 'fast')
+    ]);
+
+    const bySource = {
+      imovirtual: [],
+      idealista: []
+    };
+
+    settled.forEach(entry => {
+      if (entry.status !== 'fulfilled' || !Array.isArray(entry.value)) return;
+      const clean = dedupeListings(entry.value).filter(item => isDirectListingLink(item?.url, detectListingConfig(item)));
+      if (!clean.length) return;
+      const config = detectListingConfig(clean[0]);
+      if (config?.id === 'imovirtual') bySource.imovirtual = clean;
+      if (config?.id === 'idealista') bySource.idealista = clean;
+    });
+
+    if (!bySource.imovirtual.length) {
+      bySource.imovirtual = await fetchPortalHomepageListings('imovirtual', 16);
+    }
+    if (!bySource.idealista.length) {
+      bySource.idealista = await fetchPortalHomepageListings('idealista', 16);
+    }
+
+    const mixed = [];
+    if (bySource.imovirtual.length) mixed.push(...pickRandomListings(bySource.imovirtual, 4));
+    if (bySource.idealista.length) mixed.push(...pickRandomListings(bySource.idealista, 4));
+
+    const combined = dedupeListings([...bySource.imovirtual, ...bySource.idealista]);
+    if (!combined.length) return [];
+    mixed.push(...pickRandomListings(combined, 8));
+
+    return dedupeListings(mixed).slice(0, 8);
+  }
+
+  async function fetchPortalHomepageListings(sourceId, limit) {
+    const cfg = HOUSING_SOURCES[sourceId];
+    if (!cfg) return [];
+    const homepage = cfg.id === 'idealista' ? 'https://www.idealista.pt/' : 'https://www.imovirtual.com/';
+    const proxyUrls = buildProxyUrls(homepage, cfg.id);
+
+    for (const proxyUrl of proxyUrls) {
+      try {
+        const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'text/html' } }, 10000);
+        if (!res.ok) continue;
+        const html = await res.text();
+        if (isBlockedScrapeResponse(html)) continue;
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const parsed = parseHousingListings(doc, html, cfg);
+        if (parsed.length) return dedupeListings(parsed).slice(0, Math.max(1, limit || 12));
+      } catch (error) {
+        // try next proxy candidate
+      }
+    }
+
+    return [];
+  }
+
+  function pickRandomListings(listings, count) {
+    if (!Array.isArray(listings) || !listings.length || !count) return [];
+    const pool = listings.slice();
+    for (let i = pool.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = pool[i];
+      pool[i] = pool[j];
+      pool[j] = tmp;
+    }
+    return pool.slice(0, Math.max(0, count));
+  }
+
+  function makeHousingCacheKey(source, location, filters) {
+    const keyObj = {
+      source,
+      location: (location || '').toLowerCase(),
+      maxBudget: filters.maxBudget || 0,
+      minRooms: filters.minRooms || 0,
+      areaScope: filters.areaScope || 'nearby',
+      area: (filters.area || '').toLowerCase(),
+      sort: filters.sort || 'relevance',
+      mode: filters.searchMode || 'fast'
+    };
+    return JSON.stringify(keyObj);
+  }
+
+  function getHousingCache(key, mode) {
+    const entry = HOUSING_CACHE.get(key);
+    if (!entry) return null;
+    const ttl = mode === 'deep' ? HOUSING_CACHE_TTL.deep : HOUSING_CACHE_TTL.fast;
+    if ((Date.now() - entry.ts) > ttl) {
+      HOUSING_CACHE.delete(key);
+      return null;
+    }
+    return Array.isArray(entry.listings) ? entry.listings.slice() : null;
+  }
+
+  function setHousingCache(key, listings) {
+    HOUSING_CACHE.set(key, { ts: Date.now(), listings: Array.isArray(listings) ? listings.slice(0, 240) : [] });
+    if (HOUSING_CACHE.size > 40) {
+      const firstKey = HOUSING_CACHE.keys().next().value;
+      if (firstKey) HOUSING_CACHE.delete(firstKey);
+    }
+  }
+
+  async function fetchHousingListings(sourceId, location, areaScope, searchMode) {
     if (sourceId === 'all') {
       const settled = await Promise.allSettled([
-        fetchHousingListingsSingle('imovirtual', location, areaScope),
-        fetchHousingListingsSingle('idealista', location, areaScope)
+        fetchHousingListingsSingle('imovirtual', location, areaScope, searchMode),
+        fetchHousingListingsSingle('idealista', location, areaScope, searchMode)
       ]);
       const merged = [];
       settled.forEach(entry => {
@@ -863,28 +1123,36 @@
       const firstRejected = settled.find(entry => entry.status === 'rejected');
       throw firstRejected && firstRejected.status === 'rejected' ? firstRejected.reason : new Error('empty');
     }
-    return fetchHousingListingsSingle(sourceId, location, areaScope);
+    return fetchHousingListingsSingle(sourceId, location, areaScope, searchMode);
   }
 
-  async function fetchHousingListingsSingle(sourceId, location, areaScope) {
+  async function fetchHousingListingsSingle(sourceId, location, areaScope, searchMode) {
     const cfg = HOUSING_SOURCES[sourceId] || HOUSING_SOURCES.imovirtual;
+    const mode = searchMode === 'deep' ? 'deep' : 'fast';
     const targetUrl = cfg.buildTargetUrl(location || 'Lisboa', areaScope);
     const alternativeUrls = typeof cfg.buildAlternativeUrls === 'function' ? cfg.buildAlternativeUrls(location || 'Lisboa', areaScope) : [];
     const baseTargetUrls = dedupeStrings([targetUrl, ...alternativeUrls]);
-    const targetUrls = cfg.id === 'imovirtual' ? expandImovirtualTargets(baseTargetUrls) : baseTargetUrls;
+    const targetUrls = cfg.id === 'imovirtual'
+      ? expandImovirtualTargets(baseTargetUrls, mode)
+      : expandIdealistaTargets(baseTargetUrls, location, areaScope, mode);
     let lastError = new Error('network');
+    const idealistaCap = mode === 'deep' ? 80 : 24;
 
     if (cfg.id === 'idealista') {
       const apiListings = await tryFetchIdealistaApiListings(location || 'Lisboa', cfg);
-      if (apiListings.length) return apiListings.slice(0, 12);
+      if (apiListings.length >= 12) return apiListings.slice(0, idealistaCap);
+
+      const deepListings = await tryFetchIdealistaDeepListings(location || 'Lisboa', areaScope, cfg, baseTargetUrls, idealistaCap, mode);
+      const combined = dedupeListings([...(apiListings || []), ...(deepListings || [])]);
+      if (combined.length) return combined.slice(0, idealistaCap);
     }
 
     const collected = [];
     for (const nextTargetUrl of targetUrls) {
-      const proxyUrls = buildProxyUrls(nextTargetUrl);
+      const proxyUrls = buildProxyUrls(nextTargetUrl, cfg.id);
       for (const proxyUrl of proxyUrls) {
         try {
-          const res = await fetch(proxyUrl, { headers: { 'Accept': 'text/html' } });
+          const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'text/html' } }, cfg.id === 'idealista' ? 8500 : 10000);
           if (!res.ok) {
             lastError = new Error('network');
             continue;
@@ -897,7 +1165,12 @@
           const doc = new DOMParser().parseFromString(html, 'text/html');
           const parsed = parseHousingListings(doc, html, cfg);
           if (parsed.length) {
-            if (cfg.id !== 'imovirtual') return parsed.slice(0, 12);
+            if (cfg.id === 'idealista') {
+              collected.push(...parsed);
+              const unique = dedupeListings(collected);
+              if (unique.length >= idealistaCap) return unique.slice(0, idealistaCap);
+              break;
+            }
             collected.push(...parsed);
             const uniqueCount = dedupeListings(collected).length;
             if (uniqueCount >= 120) return dedupeListings(collected).slice(0, 120);
@@ -910,23 +1183,102 @@
       }
     }
 
-    if (collected.length) return dedupeListings(collected).slice(0, 120);
+    if (collected.length) {
+      const cap = cfg.id === 'idealista' ? idealistaCap : 120;
+      return dedupeListings(collected).slice(0, cap);
+    }
 
     throw lastError;
   }
 
-  function expandImovirtualTargets(urls) {
+  function expandImovirtualTargets(urls, mode) {
     const out = [];
+    const maxPages = mode === 'deep' ? 5 : 2;
     const addWithPage = (url, page) => {
       if (page <= 1) return url;
       return `${url}${url.includes('?') ? '&' : '?'}page=${page}`;
     };
     (urls || []).forEach(url => {
-      for (let page = 1; page <= 5; page += 1) {
+      for (let page = 1; page <= maxPages; page += 1) {
         out.push(addWithPage(url, page));
       }
     });
     return dedupeStrings(out);
+  }
+
+  function expandIdealistaTargets(urls, location, areaScope, mode) {
+    const out = [];
+    const q = (location || 'Lisboa').trim() || 'Lisboa';
+    const slug = slugifyLocation(q) || 'lisboa';
+    const maxPage = mode === 'deep' ? 8 : 4;
+
+    (urls || []).forEach(url => {
+      out.push(url);
+      const clean = url.split('?')[0].replace(/\/+$/, '');
+
+      if (/idealista\.pt\/comprar-casas\//i.test(clean)) {
+        for (let page = 2; page <= maxPage; page += 1) {
+          out.push(`${clean}/pagina-${page}.htm`);
+        }
+      }
+
+      const joiner = url.includes('?') ? '&' : '?';
+      out.push(`${url}${joiner}ordem=atualizado-desc`);
+      if (mode === 'deep') {
+        out.push(`${url}${joiner}ordem=precos-asc`);
+        out.push(`${url}${joiner}ordem=precos-desc`);
+      }
+    });
+
+    out.push(`https://www.idealista.pt/comprar-casas/${slug}/`);
+    out.push(`https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(q)}`);
+    out.push(`https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(q)}&ordem=atualizado-desc`);
+
+    if (areaScope === 'all-lisbon-towns') {
+      out.push('https://www.idealista.pt/comprar-casas/lisboa/');
+      out.push('https://www.idealista.pt/comprar-casas/?q=Lisboa');
+    }
+
+    return dedupeStrings(out);
+  }
+
+  async function fetchIdealistaTarget(targetUrl, cfg) {
+    const proxyUrls = buildProxyUrls(targetUrl, 'idealista');
+    const attempts = proxyUrls.map(async (proxyUrl) => {
+      const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'text/html,application/json;q=0.9,*/*;q=0.8' } }, 8500);
+      if (!res.ok) throw new Error('network');
+      const html = await res.text();
+      if (isBlockedScrapeResponse(html)) throw new Error('blocked');
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const parsed = parseHousingListings(doc, html, cfg);
+      if (!parsed.length) throw new Error('empty');
+      return parsed;
+    });
+
+    try {
+      const parsed = await Promise.any(attempts);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  async function tryFetchIdealistaDeepListings(location, areaScope, cfg, baseTargetUrls, maxNeeded, mode) {
+    const targetUrls = expandIdealistaTargets(baseTargetUrls, location, areaScope, mode);
+    const collected = [];
+    const batchSize = mode === 'deep' ? 3 : 2;
+
+    for (let i = 0; i < targetUrls.length; i += batchSize) {
+      const batch = targetUrls.slice(i, i + batchSize);
+      const results = await Promise.all(batch.map(url => fetchIdealistaTarget(url, cfg)));
+      results.forEach(items => {
+        if (Array.isArray(items) && items.length) collected.push(...items);
+      });
+      const unique = dedupeListings(collected);
+      if (unique.length >= maxNeeded) return unique.slice(0, maxNeeded);
+    }
+
+    return dedupeListings(collected).slice(0, maxNeeded);
   }
 
   async function tryFetchIdealistaApiListings(location, cfg) {
@@ -941,10 +1293,10 @@
     const all = [];
 
     for (const endpoint of endpoints) {
-      const proxyUrls = buildProxyUrls(endpoint);
+      const proxyUrls = buildProxyUrls(endpoint, 'idealista');
       for (const proxyUrl of proxyUrls) {
         try {
-          const res = await fetch(proxyUrl, { headers: { 'Accept': 'application/json,text/plain,*/*' } });
+          const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'application/json,text/plain,*/*' } }, 7000);
           if (!res.ok) continue;
           const raw = await res.text();
           if (isBlockedScrapeResponse(raw)) continue;
@@ -1237,6 +1589,7 @@
     const scopeSelect = document.getElementById('housing-area-scope');
     const areaInput = document.getElementById('housing-area');
     const sortSelect = document.getElementById('housing-sort');
+    const modeSelect = document.getElementById('housing-mode');
     const budgetValue = parseInt((budgetInput?.value || '').replace(/[^\d]/g, ''), 10);
     return {
       maxBudget: Number.isFinite(budgetValue) && budgetValue > 0 ? budgetValue : null,
@@ -1244,6 +1597,7 @@
       areaScope: scopeSelect?.value || 'nearby',
       area: (areaInput?.value || '').trim(),
       sort: sortSelect?.value || 'relevance',
+      searchMode: modeSelect?.value || 'fast',
       location: location || HOUSING_STATE.location
     };
   }
@@ -1448,31 +1802,53 @@
     `).join('');
   }
 
-  function renderHousingAlternativeAction(relatedListings, isFallback) {
+  function renderHousingAlternativeAction(relatedListings, isFallback, options = {}) {
     const container = document.getElementById('housing-alt-actions');
     if (!container) return;
     const copy = T[currentLang] || {};
     const hasRelated = Array.isArray(relatedListings) && relatedListings.length > 0;
-    if (!hasRelated) {
+    const allowExpandSource = !!options.allowExpandSource && HOUSING_STATE.source !== 'all';
+
+    if (!hasRelated && !allowExpandSource) {
       container.innerHTML = '';
       container.style.display = 'none';
       return;
     }
 
-    container.innerHTML = `<button class="btn btn-ghost" id="housing-show-relatable" type="button">${copy['housing.showRelatable'] || 'Show relatable listings'}</button>`;
+    const actions = [];
+    if (hasRelated) {
+      actions.push(`<button class="btn btn-ghost" id="housing-show-relatable" type="button">${copy['housing.showRelatable'] || 'Show relatable listings'}</button>`);
+    }
+    if (allowExpandSource) {
+      actions.push(`<button class="btn btn-primary" id="housing-expand-source" type="button">${copy['housing.tryAllSources'] || 'Try all portals'}</button>`);
+    }
+
+    container.innerHTML = actions.join('');
     container.style.display = 'block';
+
     const btn = document.getElementById('housing-show-relatable');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      HOUSING_STATE.items = relatedListings.slice(0, 8);
-      HOUSING_STATE.relatedItems = [];
-      HOUSING_STATE.hasPendingRelated = false;
-      HOUSING_STATE.relatedFallback = false;
-      HOUSING_STATE.fallback = !!isFallback;
-      renderHousingListings(HOUSING_STATE.items, !!isFallback);
-      renderHousingStatus('suggested');
-      renderHousingAlternativeAction([], false);
-    });
+    if (btn) {
+      btn.addEventListener('click', () => {
+        HOUSING_STATE.items = relatedListings.slice(0, 8);
+        HOUSING_STATE.relatedItems = [];
+        HOUSING_STATE.hasPendingRelated = false;
+        HOUSING_STATE.relatedFallback = false;
+        HOUSING_STATE.fallback = !!isFallback;
+        renderHousingListings(HOUSING_STATE.items, !!isFallback);
+        renderHousingStatus('suggested');
+        renderHousingAlternativeAction([], false);
+      });
+    }
+
+    const expandBtn = document.getElementById('housing-expand-source');
+    if (expandBtn) {
+      expandBtn.addEventListener('click', () => {
+        const sourceSelect = document.getElementById('housing-source');
+        if (sourceSelect) sourceSelect.value = 'all';
+        HOUSING_STATE.source = 'all';
+        loadHousingListings();
+      });
+    }
   }
 
   /* ═══════════════════════════════════════
@@ -1882,6 +2258,160 @@
     });
   }
 
+  function renderResources(cat) {
+    const grid = document.getElementById('resource-grid');
+    if (!grid) return;
+    const selected = cat || document.querySelector('.resource-cat.active')?.getAttribute('data-cat') || 'all';
+    const lang = currentLang;
+    const labels = {
+      all: lang === 'pt' ? 'Todos' : 'All',
+      financial: lang === 'pt' ? 'Financeiro' : 'Financial',
+      property: lang === 'pt' ? 'Imovel' : 'Property',
+      environment: lang === 'pt' ? 'Ambiente' : 'Environment'
+    };
+
+    const list = RESOURCE_TOOLS.filter(item => selected === 'all' || item.cat === selected);
+    grid.innerHTML = list.map((item) => `
+      <article class="resource-card reveal" data-cat="${item.cat}" role="listitem" title="${escapeHtml(item.desc[lang])}">
+        <div class="resource-header">
+          <h3 class="resource-title">${escapeHtml(item.title[lang])}</h3>
+          <span class="resource-tag">${labels[item.cat] || item.cat}</span>
+        </div>
+        <p class="resource-desc">${escapeHtml(item.desc[lang])}</p>
+        <a class="resource-link" href="${item.url}" target="_blank" rel="noopener">${lang === 'pt' ? 'Abrir ferramenta' : 'Open tool'} <span aria-hidden="true">↗</span></a>
+      </article>
+    `).join('');
+
+    grid.querySelectorAll('.resource-card').forEach(card => card.classList.add('visible'));
+  }
+
+  function buildOsmEmbedUrl(lat, lon) {
+    const delta = 0.08;
+    const left = (lon - delta).toFixed(6);
+    const right = (lon + delta).toFixed(6);
+    const top = (lat + delta).toFixed(6);
+    const bottom = (lat - delta).toFixed(6);
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lon.toFixed(6)}`;
+  }
+
+  function buildAirEmbedUrl(lat, lon) {
+    const latVal = lat.toFixed(4);
+    const lonVal = lon.toFixed(4);
+    return `https://embed.windy.com/embed2.html?lat=${latVal}&lon=${lonVal}&detailLat=${latVal}&detailLon=${lonVal}&width=650&height=420&zoom=9&level=surface&overlay=pm2p5&menu=&message=true&marker=true&calendar=24&pressure=true&type=map&location=coordinates&detail=true&metricWind=default&metricTemp=default&radarRange=-1`;
+  }
+
+  function buildShadeEmbedUrl(lat, lon) {
+    return `https://shademap.app/#12/${lat.toFixed(4)}/${lon.toFixed(4)}`;
+  }
+
+  async function fetchAirQualitySnapshot(lat, lon) {
+    const endpoint = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi,pm10,pm2_5`;
+    const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('air-api');
+    const payload = await res.json();
+    return payload?.current || null;
+  }
+
+  function initResourceLiveMap() {
+    const select = document.getElementById('resource-map-location');
+    const frame = document.getElementById('resource-map-frame');
+    const externalLink = document.getElementById('resource-external-open');
+    const featureButtons = document.querySelectorAll('.resource-feature-btn');
+    const airPanel = document.getElementById('resource-air-panel');
+    const airAqi = document.getElementById('resource-air-aqi');
+    const airPm25 = document.getElementById('resource-air-pm25');
+    const airPm10 = document.getElementById('resource-air-pm10');
+    const airUpdated = document.getElementById('resource-air-updated');
+    if (!select || !frame || !externalLink || !featureButtons.length || !airPanel) return;
+
+    const previous = select.value || 'lisboa';
+    const previousFeature = select.dataset.feature || 'base';
+    select.innerHTML = LIVE_MAP_LOCATIONS.map(item => {
+      const label = item.label[currentLang] || item.label.pt;
+      return `<option value="${item.key}">${label}</option>`;
+    }).join('');
+
+    if (LIVE_MAP_LOCATIONS.some(item => item.key === previous)) select.value = previous;
+    select.dataset.feature = previousFeature;
+
+    const setFeatureActive = (feature) => {
+      select.dataset.feature = feature;
+      featureButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-feature') === feature));
+    };
+
+    const setAirPending = (pending) => {
+      airAqi.textContent = pending ? '...' : '--';
+      airPm25.textContent = pending ? '...' : '--';
+      airPm10.textContent = pending ? '...' : '--';
+      airUpdated.textContent = pending ? '...' : '--';
+    };
+
+    const updateMap = async () => {
+      const selected = LIVE_MAP_LOCATIONS.find(item => item.key === select.value) || LIVE_MAP_LOCATIONS[0];
+      const feature = select.dataset.feature || 'base';
+
+      if (feature === 'air') {
+        frame.src = buildAirEmbedUrl(selected.lat, selected.lon);
+        externalLink.href = `https://www.iqair.com/world-air-quality?keyword=${encodeURIComponent(selected.label.en)}`;
+        airPanel.style.display = 'grid';
+        setAirPending(true);
+        try {
+          const current = await fetchAirQualitySnapshot(selected.lat, selected.lon);
+          if (current) {
+            airAqi.textContent = Number.isFinite(current.european_aqi) ? Math.round(current.european_aqi).toString() : '--';
+            airPm25.textContent = Number.isFinite(current.pm2_5) ? `${current.pm2_5.toFixed(1)} µg/m3` : '--';
+            airPm10.textContent = Number.isFinite(current.pm10) ? `${current.pm10.toFixed(1)} µg/m3` : '--';
+            airUpdated.textContent = current.time || '--';
+          } else {
+            setAirPending(false);
+          }
+        } catch (error) {
+          setAirPending(false);
+        }
+        return;
+      }
+
+      airPanel.style.display = 'none';
+      if (feature === 'shade') {
+        frame.src = buildShadeEmbedUrl(selected.lat, selected.lon);
+        externalLink.href = buildShadeEmbedUrl(selected.lat, selected.lon);
+      } else {
+        frame.src = buildOsmEmbedUrl(selected.lat, selected.lon);
+        externalLink.href = `https://www.openstreetmap.org/?mlat=${selected.lat.toFixed(6)}&mlon=${selected.lon.toFixed(6)}#map=12/${selected.lat.toFixed(6)}/${selected.lon.toFixed(6)}`;
+      }
+    };
+
+    updateMap();
+    if (!select.dataset.bound) {
+      select.addEventListener('change', updateMap);
+      featureButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          setFeatureActive(btn.getAttribute('data-feature') || 'base');
+          updateMap();
+        });
+      });
+      select.dataset.bound = 'true';
+    }
+
+    setFeatureActive(select.dataset.feature || 'base');
+  }
+
+  function initResources() {
+    const cats = document.querySelectorAll('.resource-cat');
+    if (!cats.length) return;
+
+    cats.forEach(btn => {
+      btn.addEventListener('click', () => {
+        cats.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderResources(btn.getAttribute('data-cat'));
+        initTiltEffects();
+      });
+    });
+
+    renderResources('all');
+  }
+
   function initFAQ() {
     renderFAQ();
 
@@ -1958,6 +2488,8 @@
 
     const modal = document.getElementById('step-modal');
     const modalContent = document.getElementById('step-modal-content');
+    const closeBtn = document.getElementById('step-modal-close');
+    if (!modal || !modalContent || !closeBtn) return;
 
     document.querySelectorAll('.jg-step-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1972,7 +2504,7 @@
       });
     });
 
-    document.getElementById('step-modal-close').addEventListener('click', closeStepModal);
+    closeBtn.addEventListener('click', closeStepModal);
 
     function closeStepModal() {
       modal.classList.remove('open');
@@ -2157,12 +2689,19 @@
      ═══════════════════════════════════════ */
   function initParallax() {
     const circles = document.querySelectorAll('.hero-circle');
+    const orbs = document.querySelectorAll('.resource-orb');
     window.addEventListener('scroll', () => {
       const y = window.scrollY;
       if (y < window.innerHeight) {
         circles.forEach((c, i) => {
           const speed = (i + 1) * 0.03;
           c.style.transform = `translateY(${y * speed}px)`;
+        });
+      }
+      if (orbs.length) {
+        orbs.forEach((orb, i) => {
+          const speed = (i + 2) * 0.018;
+          orb.style.transform = `translateY(${y * speed}px)`;
         });
       }
     }, { passive: true });
@@ -2192,10 +2731,13 @@
     initLearnTabs();
     initLearnModal();
     initFAQ();
+    initResources();
+    initResourceLiveMap();
     initJourneyGuide();
     initChatbot();
     initContactForm();
     initParallax();
+    initTiltEffects();
 
     // Set initial language
     setLanguage('pt');

@@ -9,7 +9,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -83,12 +83,10 @@
       <ul class="navbar-links" id="navbar-links" role="list">
         <li><a href="#hero" class="nav-link active" data-translate="nav.home">Início</a></li>
         <li><a href="#dados" class="nav-link" data-translate="nav.dados">Dados</a></li>
-        <li><a href="#mercado" class="nav-link" data-translate="nav.mercado">Mercado</a></li>
-        <li><a href="#listings" class="nav-link" data-translate="nav.listings">Casas</a></li>
         <li><a href="#simuladores" class="nav-link" data-translate="nav.simuladores">Simuladores</a></li>
+        <li><a href="#recursos" class="nav-link" data-translate="nav.recursos">Recursos</a></li>
         <li><a href="#aprender" class="nav-link" data-translate="nav.aprender">Aprender</a></li>
         <li><a href="#faq" class="nav-link" data-translate="nav.faq">FAQ</a></li>
-        <li><a href="#contacto" class="nav-link" data-translate="nav.contacto">Contacto</a></li>
       </ul>
 
       <div class="navbar-actions">
@@ -175,27 +173,32 @@
         <div class="journey-steps">
           <div class="journey-step">
             <div class="journey-step-num">01</div>
-            <div class="journey-step-text" data-translate="hero.journey1">Perfil &amp; objetivos</div>
+            <div class="journey-step-text" data-translate="nav.home">Início</div>
           </div>
           <div class="journey-arrow">→</div>
           <div class="journey-step">
             <div class="journey-step-num">02</div>
-            <div class="journey-step-text" data-translate="hero.journey2">Poupança &amp; finanças</div>
+            <div class="journey-step-text" data-translate="nav.dados">Dados</div>
           </div>
           <div class="journey-arrow">→</div>
           <div class="journey-step">
             <div class="journey-step-num">03</div>
-            <div class="journey-step-text" data-translate="hero.journey3">Crédito habitação</div>
+            <div class="journey-step-text" data-translate="nav.simuladores">Simuladores</div>
           </div>
           <div class="journey-arrow">→</div>
           <div class="journey-step">
             <div class="journey-step-num">04</div>
-            <div class="journey-step-text" data-translate="hero.journey4">Procura de imóvel</div>
+            <div class="journey-step-text" data-translate="nav.recursos">Recursos</div>
           </div>
           <div class="journey-arrow">→</div>
           <div class="journey-step">
             <div class="journey-step-num">05</div>
-            <div class="journey-step-text" data-translate="hero.journey5">Escritura &amp; chaves</div>
+            <div class="journey-step-text" data-translate="nav.aprender">Aprender</div>
+          </div>
+          <div class="journey-arrow">→</div>
+          <div class="journey-step">
+            <div class="journey-step-num">06</div>
+            <div class="journey-step-text" data-translate="nav.faq">FAQ</div>
           </div>
         </div>
       </div>
@@ -516,6 +519,13 @@
               <option value="price-asc" data-translate="housing.sort.priceAsc">Preço: menor para maior</option>
               <option value="price-desc" data-translate="housing.sort.priceDesc">Preço: maior para menor</option>
               <option value="rooms-desc" data-translate="housing.sort.roomsDesc">Mais quartos</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="housing-mode" data-translate="housing.mode">Modo de pesquisa</label>
+            <select id="housing-mode" class="text-input select-input">
+              <option value="fast" data-translate="housing.mode.fast">Rápido (mais veloz)</option>
+              <option value="deep" data-translate="housing.mode.deep">Profundo (mais cobertura)</option>
             </select>
           </div>
         </div>
@@ -854,82 +864,69 @@
     </div>
   </section>
 
-  <!-- ===================== SECTION: PROGRESS TRACKER ===================== -->
-  <section class="section section-progress" id="progress" data-section-color="progress">
+  <!-- ===================== SECTION: RECURSOS ===================== -->
+  <section class="section section-recursos" id="recursos" data-section-color="recursos">
+    <div class="resource-orbs" aria-hidden="true">
+      <div class="resource-orb o1"></div>
+      <div class="resource-orb o2"></div>
+      <div class="resource-orb o3"></div>
+    </div>
     <div class="container">
       <div class="section-header center reveal">
-        <span class="section-tag" data-translate="prog.tag">O teu progresso</span>
-        <h2 class="section-title" data-translate="prog.title">Guia de jornada passo a passo</h2>
-        <p class="section-subtitle" data-translate="prog.subtitle">Da ideia às chaves — cada fase explicada de forma simples.</p>
+        <span class="section-tag" data-translate="res.tag">Recursos Curados</span>
+        <h2 class="section-title" data-translate="res.title">Ferramentas que te ajudam a decidir melhor</h2>
+        <p class="section-subtitle" data-translate="res.subtitle">Selecionámos ferramentas práticas para pesquisa, planeamento, comparação e preparação da compra da tua primeira casa.</p>
       </div>
 
-      <div class="journey-guide reveal">
-        <div class="journey-guide-track">
-          <div class="journey-guide-step active" data-step="1">
-            <div class="jg-step-icon">01</div>
-            <div class="jg-step-num">01</div>
-            <h4 class="jg-step-title" data-translate="journey.s1.title">Define os teus objetivos</h4>
-            <p class="jg-step-desc" data-translate="journey.s1.desc">Que tipo de casa, em que zona, qual o orçamento máximo? Estabelece critérios claros antes de começar.</p>
-            <div class="jg-step-duration" data-translate="journey.s1.time">1–4 semanas</div>
-            <button class="jg-step-btn" data-step="1" data-translate="journey.expand">Ver detalhes</button>
-          </div>
-          <div class="journey-connector"></div>
+      <div class="resource-cats reveal" role="tablist" id="resource-cats">
+        <button class="resource-cat active" data-cat="all" data-translate="res.catAll">Todos</button>
+        <button class="resource-cat" data-cat="financial" data-translate="res.catFinancial">Financeiro</button>
+        <button class="resource-cat" data-cat="property" data-translate="res.catProperty">Imóvel</button>
+        <button class="resource-cat" data-cat="environment" data-translate="res.catEnvironment">Ambiente</button>
+      </div>
 
-          <div class="journey-guide-step" data-step="2">
-            <div class="jg-step-icon">02</div>
-            <div class="jg-step-num">02</div>
-            <h4 class="jg-step-title" data-translate="journey.s2.title">Prepara as finanças</h4>
-            <p class="jg-step-desc" data-translate="journey.s2.desc">Reúne documentos (IRS, recibos), melhora a taxa de esforço, poupa para a entrada. Consulta o banco.</p>
-            <div class="jg-step-duration" data-translate="journey.s2.time">2–12 meses</div>
-            <button class="jg-step-btn" data-step="2" data-translate="journey.expand">Ver detalhes</button>
-          </div>
-          <div class="journey-connector"></div>
+      <div class="resource-grid" id="resource-grid" role="list">
+        <!-- Generated by JS -->
+      </div>
 
-          <div class="journey-guide-step" data-step="3">
-            <div class="jg-step-icon">03</div>
-            <div class="jg-step-num">03</div>
-            <h4 class="jg-step-title" data-translate="journey.s3.title">Pré-aprovação do crédito</h4>
-            <p class="jg-step-desc" data-translate="journey.s3.desc">Pede a pré-aprovação em vários bancos. Compara TAN, TAEG, spreads e condições. Negocia.</p>
-            <div class="jg-step-duration" data-translate="journey.s3.time">2–6 semanas</div>
-            <button class="jg-step-btn" data-step="3" data-translate="journey.expand">Ver detalhes</button>
+      <div class="resource-live-map glass reveal">
+        <div class="resource-live-head">
+          <h3 data-translate="res.mapTitle">Mapa interativo da zona</h3>
+          <p data-translate="res.mapSubtitle">Explora rapidamente uma zona em mapa real e abre ferramentas de analise ambiental.</p>
+        </div>
+        <div class="resource-live-controls">
+          <label class="form-label" for="resource-map-location" data-translate="res.mapSelect">Seleciona a zona</label>
+          <select id="resource-map-location" class="text-input select-input"></select>
+          <div class="resource-live-features" role="tablist" aria-label="Map features">
+            <button type="button" class="resource-feature-btn active" data-feature="base" data-translate="res.featureBase">Mapa base</button>
+            <button type="button" class="resource-feature-btn" data-feature="air" data-translate="res.featureAir">Qualidade do ar</button>
+            <button type="button" class="resource-feature-btn" data-feature="shade" data-translate="res.featureShade">Sombra solar</button>
           </div>
-          <div class="journey-connector"></div>
-
-          <div class="journey-guide-step" data-step="4">
-            <div class="jg-step-icon">04</div>
-            <div class="jg-step-num">04</div>
-            <h4 class="jg-step-title" data-translate="journey.s4.title">Procura do imóvel</h4>
-            <p class="jg-step-desc" data-translate="journey.s4.desc">Analisa IMI, Caderneta Predial, Certidão do Registo, estado do imóvel. Negocia o preço.</p>
-            <div class="jg-step-duration" data-translate="journey.s4.time">1–6 meses</div>
-            <button class="jg-step-btn" data-step="4" data-translate="journey.expand">Ver detalhes</button>
-          </div>
-          <div class="journey-connector"></div>
-
-          <div class="journey-guide-step" data-step="5">
-            <div class="jg-step-icon">05</div>
-            <div class="jg-step-num">05</div>
-            <h4 class="jg-step-title" data-translate="journey.s5.title">CPCV e aprovação final</h4>
-            <p class="jg-step-desc" data-translate="journey.s5.desc">Contrato Promessa de Compra e Venda (CPCV) com sinal. Banco aprova formalmente o crédito habitação.</p>
-            <div class="jg-step-duration" data-translate="journey.s5.time">2–8 semanas</div>
-            <button class="jg-step-btn" data-step="5" data-translate="journey.expand">Ver detalhes</button>
-          </div>
-          <div class="journey-connector"></div>
-
-          <div class="journey-guide-step" data-step="6">
-            <div class="jg-step-icon">06</div>
-            <div class="jg-step-num">06</div>
-            <h4 class="jg-step-title" data-translate="journey.s6.title">Escritura e as chaves</h4>
-            <p class="jg-step-desc" data-translate="journey.s6.desc">Escritura pública no notário. Pagamento de IMT e IS. Registo na Conservatória. A casa é tua!</p>
-            <div class="jg-step-duration" data-translate="journey.s6.time">1 dia</div>
-            <button class="jg-step-btn" data-step="6" data-translate="journey.expand">Ver detalhes</button>
+          <div class="resource-live-links">
+            <a id="resource-external-open" class="btn btn-ghost" href="#" target="_blank" rel="noopener" data-translate="res.openExternal">Abrir em nova aba</a>
           </div>
         </div>
-      </div>
-
-      <!-- Step Detail Modal -->
-      <div class="step-modal glass" id="step-modal" aria-hidden="true">
-        <button class="step-modal-close" id="step-modal-close">&#10005;</button>
-        <div id="step-modal-content"></div>
+        <div class="resource-air-panel" id="resource-air-panel" style="display:none;" aria-live="polite">
+          <div class="air-metric">
+            <span class="air-label" data-translate="res.airAqi">AQI</span>
+            <strong id="resource-air-aqi">--</strong>
+          </div>
+          <div class="air-metric">
+            <span class="air-label" data-translate="res.airPm25">PM2.5</span>
+            <strong id="resource-air-pm25">--</strong>
+          </div>
+          <div class="air-metric">
+            <span class="air-label" data-translate="res.airPm10">PM10</span>
+            <strong id="resource-air-pm10">--</strong>
+          </div>
+          <div class="air-metric">
+            <span class="air-label" data-translate="res.airUpdated">Atualizado</span>
+            <strong id="resource-air-updated">--</strong>
+          </div>
+        </div>
+        <div class="resource-live-frame-wrap">
+          <iframe id="resource-map-frame" title="Mapa interativo" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
       </div>
     </div>
   </section>
@@ -1084,9 +1081,9 @@
             <h4 class="footer-col-title" data-translate="footer.nav">Navegação</h4>
             <ul class="footer-links">
               <li><a href="#hero" data-translate="nav.home">Início</a></li>
-              <li><a href="#simuladores" data-translate="nav.simuladores">Simuladores</a></li>
               <li><a href="#dados" data-translate="nav.dados">Dados</a></li>
-              <li><a href="#listings" data-translate="nav.listings">Casas</a></li>
+              <li><a href="#simuladores" data-translate="nav.simuladores">Simuladores</a></li>
+              <li><a href="#recursos" data-translate="nav.recursos">Recursos</a></li>
               <li><a href="#aprender" data-translate="nav.aprender">Aprender</a></li>
               <li><a href="#faq" data-translate="nav.faq">FAQ</a></li>
             </ul>
@@ -1105,8 +1102,7 @@
           <div class="footer-col">
             <h4 class="footer-col-title" data-translate="footer.project">Recursos</h4>
             <ul class="footer-links">
-              <li><a href="#mercado" data-translate="nav.mercado">Mercado</a></li>
-              <li><a href="#listings" data-translate="nav.listings">Casas</a></li>
+              <li><a href="#recursos" data-translate="nav.recursos">Recursos</a></li>
               <li><a href="#aprender" data-translate="nav.aprender">Aprender</a></li>
               <li><a href="#faq" data-translate="nav.faq">FAQ</a></li>
               <li><a href="#contacto" data-translate="nav.contacto">Contacto</a></li>
@@ -1119,7 +1115,7 @@
             ⚠️ Os valores apresentados são estimativas educativas. Consulta sempre um especialista financeiro antes de tomar decisões de investimento.
           </div>
           <div class="footer-copy">
-            <span data-translate="footer.copy">© 2025 My Home. Todos os direitos reservados.</span>
+            <span data-translate="footer.copy">© 2026 My Home. Todos os direitos reservados.</span>
           </div>
         </div>
       </div>
