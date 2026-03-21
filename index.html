@@ -9,7 +9,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Manrope:wght@300;400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
@@ -22,14 +22,27 @@
   <!-- ===================== ONBOARDING HINT ===================== -->
   <div class="onboarding-overlay" id="onboarding" role="dialog" aria-modal="true" aria-label="Bem-vindo">
     <div class="onboarding-card glass">
+      <div class="onboarding-orb orb-a" aria-hidden="true"></div>
+      <div class="onboarding-orb orb-b" aria-hidden="true"></div>
       <span class="onboarding-close" id="onboarding-close" role="button" aria-label="Fechar">&#10005;</span>
-      <div class="onboarding-icon">MH</div>
+      <div class="onboarding-badge" aria-label="My Home">
+        <span class="brand-wordmark">
+          <span class="brand-my">My</span>
+          <span class="brand-home">Home</span>
+        </span>
+      </div>
+      <div class="onboarding-icon" aria-label="Logotipo My Home">
+        <span class="brand-logo">
+          <span class="logo-my">My</span>
+          <span class="logo-home">Home</span>
+        </span>
+      </div>
       <h2 class="onboarding-title" data-translate="onboarding.title">Bem-vindo ao My Home</h2>
       <p class="onboarding-text" data-translate="onboarding.text">Esta plataforma foi criada para te guiar, passo a passo, no processo de comprar a tua primeira casa — sem jargão, sem stress.</p>
       <ul class="onboarding-tips">
-        <li data-translate="onboarding.tip1">Testa os simuladores para explorar os teus números</li>
-        <li data-translate="onboarding.tip2">Vê os dados reais de 113 jovens como tu</li>
-        <li data-translate="onboarding.tip3">Segue o guia de jornada para entender o processo</li>
+        <li><span class="tip-check">✓</span><span data-translate="onboarding.tip1">Testa os simuladores para explorar os teus números</span></li>
+        <li><span class="tip-check">✓</span><span data-translate="onboarding.tip2">Vê os dados reais de 113 jovens como tu</span></li>
+        <li><span class="tip-check">✓</span><span data-translate="onboarding.tip3">Segue o guia de jornada para entender o processo</span></li>
       </ul>
       <button class="btn btn-primary btn-full" id="onboarding-start" data-translate="onboarding.cta">Começar a explorar</button>
     </div>
@@ -72,8 +85,10 @@
   <nav class="navbar" id="navbar" role="navigation" aria-label="Navegação principal">
     <div class="navbar-inner">
       <a href="#hero" class="navbar-logo" aria-label="My Home homepage">
-        <span class="logo-icon">MH</span>
-        <span class="logo-text">My<strong>Home</strong></span>
+        <span class="nav-brand-wordmark" aria-label="My Home">
+          <span class="nav-brand-my">My</span>
+          <span class="nav-brand-home">Home</span>
+        </span>
       </a>
 
       <button class="navbar-hamburger" id="navbar-hamburger" aria-label="Menu" aria-expanded="false" aria-controls="navbar-links">
@@ -142,15 +157,17 @@
         </div>
       </div>
 
-      <!-- PLACEHOLDER: Hero image/video -->
       <div class="hero-visual animate-scale-in" data-delay="200">
         <div class="hero-image-placeholder">
-          <!-- PLACEHOLDER: Replace with your hero image or video -->
-          <div class="placeholder-content">
-            <div class="placeholder-icon">MH</div>
-            <p class="placeholder-label" data-translate="hero.imgPlaceholder">Imagem/vídeo hero aqui</p>
-            <p class="placeholder-hint">Sugerido: jovem adulto a olhar para um apartamento, luz natural, estilo editorial</p>
-          </div>
+          <img
+            class="hero-main-image"
+            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
+            alt="Casa moderna com luz natural"
+            loading="eager"
+            decoding="async"
+          />
+          <div class="hero-image-overlay" aria-hidden="true"></div>
+
           <div class="hero-card-float glass card-float-1">
             <div class="float-icon">TX</div>
             <div><div class="float-label" data-translate="hero.floatLabel1">Euribor 6M</div><div class="float-val">3.2%</div></div>
@@ -354,9 +371,17 @@
         </div>
       </div>
 
-      <!-- PLACEHOLDER: real survey charts -->
-      <div class="placeholder-box reveal">
-        <p><strong>Placeholder:</strong> Substitui os gráficos acima com os teus gráficos reais do Google Forms ou infografias do inquérito.</p>
+      <div class="insight-image-card glass reveal">
+        <img
+          src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=1200&q=80"
+          alt="Jovens adultos a analisar dados num portatil"
+          loading="lazy"
+          decoding="async"
+        />
+        <div class="insight-image-copy">
+          <h4>Dados reais, decisões melhores</h4>
+          <p>Esta secção cruza perceções reais de jovens em Portugal com visualizações simples para apoiar decisões com mais clareza.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -425,7 +450,7 @@
       <div class="section-header center reveal">
         <span class="section-tag" data-translate="housing.tag">Casas em Portugal</span>
         <h2 class="section-title" data-translate="housing.title">Anúncios reais de portais fiáveis</h2>
-        <p class="section-subtitle" data-translate="housing.subtitle">Liga-te a portais portugueses (Imovirtual, Idealista) via scraping com proxy CORS, sempre com fallback seguro.</p>
+        <p class="section-subtitle" data-translate="housing.subtitle">Liga-te a portais portugueses (Imovirtual, Idealista, Propertium) via scraping com proxy CORS, sempre com fallback seguro.</p>
       </div>
 
       <form class="listings-controls glass reveal" id="housing-form">
@@ -436,6 +461,7 @@
               <option value="all" data-translate="housing.source.all">Todos os portais</option>
               <option value="imovirtual" data-translate="housing.source.imovirtual">Imovirtual</option>
               <option value="idealista" data-translate="housing.source.idealista">Idealista</option>
+              <option value="propertium" data-translate="housing.source.propertium">Propertium</option>
             </select>
           </div>
           <div class="form-group">
@@ -1046,9 +1072,17 @@
             <h4 data-translate="contact.dataTitle">Dados do inquérito</h4>
             <p data-translate="contact.dataDesc">A investigação baseou-se em 113 respostas a um inquérito online distribuído a jovens adultos entre os 18 e os 30 anos residentes em Portugal.</p>
           </div>
-          <!-- PLACEHOLDER: Team info -->
-          <div class="placeholder-box">
-            <p><strong>Placeholder:</strong> Adiciona a informação da equipa, nome do curso e instituição aqui.</p>
+          <div class="team-image-card glass">
+            <img
+              src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=900&q=80"
+              alt="Equipa a colaborar num projeto digital"
+              loading="lazy"
+              decoding="async"
+            />
+            <div class="team-image-copy">
+              <h4>Equipa My Home</h4>
+              <p>Projeto académico focado em simplificar a jornada da primeira habitação para jovens adultos em Portugal.</p>
+            </div>
           </div>
         </div>
       </div>

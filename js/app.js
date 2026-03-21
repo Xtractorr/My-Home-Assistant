@@ -26,13 +26,21 @@
     fallback: false,
     status: 'idle',
     filters: { maxBudget: null, minRooms: 0, areaScope: 'nearby', area: '', sort: 'relevance', searchMode: 'fast' },
+    areaNote: '',
+    areaUnknown: false,
     relatedItems: [],
     relatedFallback: false,
     hasPendingRelated: false,
+    nearbyItems: [],
+    nearbyAreas: [],
+    hasPendingNearby: false,
+    allSourcePrefetched: [],
+    hasPendingAllSourcePrefetched: false,
     hasBootstrapLoaded: false
   };
   const HOUSING_CACHE = new Map();
   const HOUSING_CACHE_TTL = { fast: 60 * 1000, deep: 180 * 1000 };
+  const HOUSING_SESSION_KEY = 'myhome-housing-ui-state-v1';
   const HOUSING_SOURCES = {
     imovirtual: {
       id: 'imovirtual',
@@ -56,6 +64,13 @@
           `https://www.idealista.pt/comprar-casas/lisboa/`
         ];
       },
+    },
+    propertium: {
+      id: 'propertium',
+      domain: 'propertium.io',
+      label: 'Propertium',
+      buildTargetUrl: (q, areaScope) => buildPropertiumUrl(q, areaScope),
+      buildAlternativeUrls: (q, areaScope) => buildPropertiumAlternativeUrls(q, areaScope),
     }
   };
   const RESOURCE_TOOLS = [
@@ -98,6 +113,54 @@
     { key: 'setubal', lat: 38.5244, lon: -8.8882, label: { pt: 'Setubal', en: 'Setubal' } },
     { key: 'faro', lat: 37.0194, lon: -7.9304, label: { pt: 'Faro', en: 'Faro' } }
   ];
+  const HOUSING_AREA_COORDS = {
+    // Lisbon and nearby areas commonly used by this UI selector
+    ajuda: { name: 'Ajuda', lat: 38.7085, lon: -9.1983 },
+    alcantara: { name: 'Alcântara', lat: 38.7066, lon: -9.1806 },
+    alfama: { name: 'Alfama', lat: 38.7111, lon: -9.1293 },
+    alvalade: { name: 'Alvalade', lat: 38.7546, lon: -9.1468 },
+    areeiro: { name: 'Areeiro', lat: 38.7423, lon: -9.1328 },
+    intendente: { name: 'Intendente', lat: 38.7216, lon: -9.1358 },
+    arroios: { name: 'Arroios', lat: 38.7283, lon: -9.1352 },
+    'avenidas-novas': { name: 'Avenidas Novas', lat: 38.7375, lon: -9.1535 },
+    'avenida-da-liberdade': { name: 'Avenida da Liberdade', lat: 38.7204, lon: -9.1452 },
+    baixa: { name: 'Baixa', lat: 38.7138, lon: -9.1394 },
+    'bairro-alto': { name: 'Bairro Alto', lat: 38.7149, lon: -9.1457 },
+    beato: { name: 'Beato', lat: 38.7336, lon: -9.1088 },
+    belem: { name: 'Belém', lat: 38.6977, lon: -9.2067 },
+    benfica: { name: 'Benfica', lat: 38.7488, lon: -9.2022 },
+    'cais-do-sodre': { name: 'Cais do Sodré', lat: 38.7063, lon: -9.1445 },
+    'campo-grande': { name: 'Campo Grande', lat: 38.7596, lon: -9.1567 },
+    'campo-de-ourique': { name: 'Campo de Ourique', lat: 38.7175, lon: -9.1637 },
+    campolide: { name: 'Campolide', lat: 38.7274, lon: -9.1639 },
+    carnide: { name: 'Carnide', lat: 38.7572, lon: -9.1915 },
+    chiado: { name: 'Chiado', lat: 38.7108, lon: -9.1427 },
+    estrela: { name: 'Estrela', lat: 38.7144, lon: -9.1609 },
+    graca: { name: 'Graça', lat: 38.7187, lon: -9.1256 },
+    lumiar: { name: 'Lumiar', lat: 38.7727, lon: -9.1593 },
+    marvila: { name: 'Marvila', lat: 38.7451, lon: -9.1047 },
+    misericordia: { name: 'Misericórdia', lat: 38.7129, lon: -9.1479 },
+    mouraria: { name: 'Mouraria', lat: 38.7165, lon: -9.1334 },
+    odivelas: { name: 'Odivelas', lat: 38.7929, lon: -9.1838 },
+    olivais: { name: 'Olivais', lat: 38.7695, lon: -9.1068 },
+    'parque-das-nacoes': { name: 'Parque das Nações', lat: 38.7679, lon: -9.0977 },
+    'penha-de-franca': { name: 'Penha de França', lat: 38.7286, lon: -9.1268 },
+    pontinha: { name: 'Pontinha', lat: 38.7654, lon: -9.1989 },
+    'santa-clara': { name: 'Santa Clara', lat: 38.7836, lon: -9.1417 },
+    'santa-maria-maior': { name: 'Santa Maria Maior', lat: 38.7112, lon: -9.1336 },
+    'santo-antonio': { name: 'Santo António', lat: 38.7215, lon: -9.1504 },
+    'sao-domingos-de-benfica': { name: 'São Domingos de Benfica', lat: 38.7454, lon: -9.1718 },
+    'sao-vicente': { name: 'São Vicente', lat: 38.7198, lon: -9.1239 },
+    telheiras: { name: 'Telheiras', lat: 38.7606, lon: -9.1668 },
+
+    // Main city anchors used in location text field
+    lisboa: { name: 'Lisboa', lat: 38.7223, lon: -9.1393 },
+    porto: { name: 'Porto', lat: 41.1579, lon: -8.6291 },
+    braga: { name: 'Braga', lat: 41.5454, lon: -8.4265 },
+    coimbra: { name: 'Coimbra', lat: 40.2033, lon: -8.4103 },
+    setubal: { name: 'Setúbal', lat: 38.5244, lon: -8.8882 },
+    faro: { name: 'Faro', lat: 37.0194, lon: -7.9304 }
+  };
 
   /* ═══════════════════════════════════════
      LANGUAGE / TRANSLATION ENGINE
@@ -140,8 +203,19 @@
     renderBankOffers();
     updateAIBrief();
     renderHousingListings(HOUSING_STATE.items, HOUSING_STATE.fallback);
-    renderHousingStatus(HOUSING_STATE.status);
-    renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], HOUSING_STATE.relatedFallback);
+    renderHousingStatusWithSummary(
+      HOUSING_STATE.status,
+      null,
+      HOUSING_STATE.source,
+      HOUSING_STATE.location,
+      { ...HOUSING_STATE.filters, areaNote: HOUSING_STATE.areaNote, areaUnknown: HOUSING_STATE.areaUnknown }
+    );
+    renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], HOUSING_STATE.relatedFallback, {
+      allowExpandSource: HOUSING_STATE.source !== 'all',
+      nearbyListings: HOUSING_STATE.hasPendingNearby ? HOUSING_STATE.nearbyItems : [],
+      nearbyAreas: HOUSING_STATE.nearbyAreas,
+      allSourceListings: HOUSING_STATE.hasPendingAllSourcePrefetched ? HOUSING_STATE.allSourcePrefetched : []
+    });
 
     // Sync quiz step label with current step number
     const stepTextEl = document.getElementById('quiz-step-text');
@@ -239,7 +313,7 @@
   }
 
   function initTiltEffects() {
-    const cards = document.querySelectorAll('.hero-card-float, .resource-card');
+    const cards = document.querySelectorAll('.resource-card');
     cards.forEach(card => {
       card.addEventListener('mousemove', (event) => {
         const rect = card.getBoundingClientRect();
@@ -779,6 +853,252 @@
       .replace(/^-+|-+$/g, '');
   }
 
+  function toRad(deg) {
+    return (deg * Math.PI) / 180;
+  }
+
+  function haversineKm(a, b) {
+    if (!a || !b) return Number.POSITIVE_INFINITY;
+    const earthKm = 6371;
+    const dLat = toRad(b.lat - a.lat);
+    const dLon = toRad(b.lon - a.lon);
+    const lat1 = toRad(a.lat);
+    const lat2 = toRad(b.lat);
+    const h = Math.sin(dLat / 2) ** 2
+      + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * earthKm * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+  }
+
+  function findAreaCoordinate(area, location) {
+    const candidates = [area, location, 'Lisboa']
+      .map(value => slugifyLocation(value || ''))
+      .filter(Boolean);
+
+    for (const candidate of candidates) {
+      if (HOUSING_AREA_COORDS[candidate]) return HOUSING_AREA_COORDS[candidate];
+      const match = Object.keys(HOUSING_AREA_COORDS).find(key => key.includes(candidate) || candidate.includes(key));
+      if (match) return HOUSING_AREA_COORDS[match];
+    }
+    return null;
+  }
+
+  function getNearbyAreasInRadius(area, location, minKm = 1, maxKm = 10) {
+    const anchor = findAreaCoordinate(area, location);
+    if (!anchor) return [];
+
+    const areas = Object.values(HOUSING_AREA_COORDS)
+      .map(item => ({
+        name: item.name,
+        distanceKm: haversineKm(anchor, item)
+      }))
+      .filter(item => Number.isFinite(item.distanceKm))
+      .filter(item => item.distanceKm >= minKm && item.distanceKm <= maxKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    // Keep unique names and a short, practical set for parallel prefetching.
+    const seen = new Set();
+    return areas.filter(item => {
+      const key = slugifyLocation(item.name);
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 5);
+  }
+
+  function detectListingAreaCoordinate(searchableText) {
+    const text = (searchableText || '').toString();
+    if (!text) return null;
+    const entries = Object.entries(HOUSING_AREA_COORDS)
+      .sort((a, b) => b[0].length - a[0].length);
+    for (const [key, item] of entries) {
+      if (text.includes(key)) return item;
+      const byName = slugifyLocation(item?.name || '');
+      if (byName && text.includes(byName)) return item;
+    }
+    return null;
+  }
+
+  function isBroadCityLocation(locationSlug) {
+    return ['lisboa', 'porto', 'braga', 'coimbra', 'setubal', 'faro'].includes(locationSlug || '');
+  }
+
+  function matchesGeoRadius(features, anchorArea, maxKm) {
+    if (!features || !anchorArea) return false;
+    const listingArea = detectListingAreaCoordinate(features.searchable);
+    if (!listingArea) return false;
+    return haversineKm(anchorArea, listingArea) <= maxKm;
+  }
+
+  function levenshtein(a, b) {
+    const s = (a || '').toString();
+    const t = (b || '').toString();
+    if (s === t) return 0;
+    const m = s.length;
+    const n = t.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i += 1) dp[i][0] = i;
+    for (let j = 0; j <= n; j += 1) dp[0][j] = j;
+    for (let i = 1; i <= m; i += 1) {
+      for (let j = 1; j <= n; j += 1) {
+        const cost = s[i - 1] === t[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+    return dp[m][n];
+  }
+
+  function normalizeAreaInput(value) {
+    const raw = (value || '').trim();
+    if (!raw) return { area: '', correctedFrom: '', unknown: false };
+    const slug = slugifyLocation(raw);
+    if (slug && HOUSING_AREA_COORDS[slug]) {
+      return { area: HOUSING_AREA_COORDS[slug].name, correctedFrom: '', unknown: false };
+    }
+
+    let bestKey = '';
+    let bestDistance = Number.POSITIVE_INFINITY;
+    Object.keys(HOUSING_AREA_COORDS).forEach(key => {
+      const distance = levenshtein(slug, key);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestKey = key;
+      }
+    });
+
+    if (bestKey && bestDistance <= 2) {
+      return { area: HOUSING_AREA_COORDS[bestKey].name, correctedFrom: raw, unknown: false };
+    }
+
+    return { area: raw, correctedFrom: '', unknown: true };
+  }
+
+  function persistHousingSessionState() {
+    try {
+      const payload = {
+        source: HOUSING_STATE.source,
+        location: HOUSING_STATE.location,
+        fallback: !!HOUSING_STATE.fallback,
+        status: HOUSING_STATE.status || 'idle',
+        filters: HOUSING_STATE.filters || {},
+        areaNote: HOUSING_STATE.areaNote || '',
+        areaUnknown: !!HOUSING_STATE.areaUnknown,
+        items: Array.isArray(HOUSING_STATE.items) ? HOUSING_STATE.items.slice(0, 24) : [],
+        relatedItems: Array.isArray(HOUSING_STATE.relatedItems) ? HOUSING_STATE.relatedItems.slice(0, 24) : [],
+        relatedFallback: !!HOUSING_STATE.relatedFallback,
+        hasPendingRelated: !!HOUSING_STATE.hasPendingRelated,
+        nearbyItems: Array.isArray(HOUSING_STATE.nearbyItems) ? HOUSING_STATE.nearbyItems.slice(0, 24) : [],
+        nearbyAreas: Array.isArray(HOUSING_STATE.nearbyAreas) ? HOUSING_STATE.nearbyAreas.slice(0, 12) : [],
+        hasPendingNearby: !!HOUSING_STATE.hasPendingNearby,
+        allSourcePrefetched: Array.isArray(HOUSING_STATE.allSourcePrefetched) ? HOUSING_STATE.allSourcePrefetched.slice(0, 24) : [],
+        hasPendingAllSourcePrefetched: !!HOUSING_STATE.hasPendingAllSourcePrefetched,
+        hasBootstrapLoaded: !!HOUSING_STATE.hasBootstrapLoaded,
+        ts: Date.now()
+      };
+      sessionStorage.setItem(HOUSING_SESSION_KEY, JSON.stringify(payload));
+    } catch (error) {
+      // Ignore persistence failures.
+    }
+  }
+
+  function restoreHousingSessionState() {
+    try {
+      const raw = sessionStorage.getItem(HOUSING_SESSION_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return false;
+
+      HOUSING_STATE.source = parsed.source || HOUSING_STATE.source;
+      HOUSING_STATE.location = parsed.location || HOUSING_STATE.location;
+      HOUSING_STATE.fallback = !!parsed.fallback;
+      HOUSING_STATE.status = parsed.status || 'idle';
+      HOUSING_STATE.filters = { ...HOUSING_STATE.filters, ...(parsed.filters || {}) };
+      HOUSING_STATE.areaNote = parsed.areaNote || '';
+      HOUSING_STATE.areaUnknown = !!parsed.areaUnknown;
+      HOUSING_STATE.items = Array.isArray(parsed.items) ? parsed.items : [];
+      HOUSING_STATE.relatedItems = Array.isArray(parsed.relatedItems) ? parsed.relatedItems : [];
+      HOUSING_STATE.relatedFallback = !!parsed.relatedFallback;
+      HOUSING_STATE.hasPendingRelated = !!parsed.hasPendingRelated;
+      HOUSING_STATE.nearbyItems = Array.isArray(parsed.nearbyItems) ? parsed.nearbyItems : [];
+      HOUSING_STATE.nearbyAreas = Array.isArray(parsed.nearbyAreas) ? parsed.nearbyAreas : [];
+      HOUSING_STATE.hasPendingNearby = !!parsed.hasPendingNearby;
+      HOUSING_STATE.allSourcePrefetched = Array.isArray(parsed.allSourcePrefetched) ? parsed.allSourcePrefetched : [];
+      HOUSING_STATE.hasPendingAllSourcePrefetched = !!parsed.hasPendingAllSourcePrefetched;
+      HOUSING_STATE.hasBootstrapLoaded = !!parsed.hasBootstrapLoaded;
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  async function resolveWithin(promise, timeoutMs, fallbackValue) {
+    const fallback = typeof fallbackValue === 'undefined' ? null : fallbackValue;
+    if (!promise || typeof promise.then !== 'function') return fallback;
+    let timer = null;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise(resolve => {
+          timer = setTimeout(() => resolve(fallback), Math.max(0, timeoutMs || 0));
+        })
+      ]);
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  }
+
+  async function prefetchHousingAlternatives(source, location, filters) {
+    if (!source || source === 'all') {
+      return { nearbyListings: [], nearbyAreas: [], allSourceListings: [] };
+    }
+
+    const nearbyAreas = getNearbyAreasInRadius(filters.area, location, 1, 10);
+    const nearbyQueries = nearbyAreas.length
+      ? nearbyAreas.map(item => item.name)
+      : getNearbyAreasInRadius(location, location, 1, 12).map(item => item.name).slice(0, 3);
+
+    const nearbyTasks = nearbyQueries.slice(0, 3).map(areaName =>
+      fetchHousingListingsSingle(source, areaName, 'nearby', filters.searchMode)
+        .then(items => ({ areaName, items: Array.isArray(items) ? items : [] }))
+        .catch(() => ({ areaName, items: [] }))
+    );
+
+    const allSourcesTask = fetchHousingListings(
+      'all',
+      location,
+      filters.areaScope === 'all-lisbon-towns' ? 'all-lisbon-towns' : 'nearby',
+      filters.searchMode
+    ).catch(() => []);
+
+    const [nearbySettled, allSourceListings] = await Promise.all([
+      Promise.all(nearbyTasks),
+      allSourcesTask
+    ]);
+
+    const nearbyMerged = dedupeListings(nearbySettled.flatMap(entry => entry.items || []));
+    const nearbyMatched = buildHousingMatchSets(nearbyMerged, {
+      ...filters,
+      area: '',
+      areaScope: 'nearby'
+    }, location);
+
+    const allSourceMatched = buildHousingMatchSets(Array.isArray(allSourceListings) ? allSourceListings : [], filters, location);
+    const allSourceBest = allSourceMatched.exact.length
+      ? allSourceMatched.exact.slice(0, 8)
+      : allSourceMatched.related.slice(0, 8);
+
+    return {
+      nearbyListings: nearbyMatched.exact.length ? nearbyMatched.exact.slice(0, 8) : nearbyMatched.related.slice(0, 8),
+      nearbyAreas: nearbyAreas.map(item => `${item.name} (${item.distanceKm.toFixed(1)} km)`),
+      allSourceListings: allSourceBest
+    };
+  }
+
   function buildImovirtualUrl(location, areaScope) {
     if (areaScope === 'all-lisbon-towns') {
       return 'https://www.imovirtual.com/pt/resultados/comprar/apartamento/lisboa';
@@ -811,6 +1131,27 @@
     ];
     if (areaScope === 'all-lisbon-towns') {
       urls.push('https://www.imovirtual.com/pt/resultados/comprar/apartamento/lisboa');
+    }
+    return dedupeStrings(urls);
+  }
+
+  function buildPropertiumUrl(location, areaScope) {
+    const query = (location || 'Lisboa').trim() || 'Lisboa';
+    // Propertium uses a search parameter format
+    return `https://my.propertium.io/?search[description]=${encodeURIComponent(query)}&search[operation]=sale&search[country]=pt`;
+  }
+
+  function buildPropertiumAlternativeUrls(location, areaScope) {
+    const q = (location || 'Lisboa').trim() || 'Lisboa';
+    const slug = slugifyLocation(q) || 'lisboa';
+    const urls = [
+      `https://my.propertium.io/?search[description]=${encodeURIComponent(q)}&search[operation]=sale`,
+      `https://my.propertium.io/?search[city]=${encodeURIComponent(q)}&search[operation]=sale`,
+      `https://my.propertium.io/pt/properties?location=${slug}`,
+      `https://my.propertium.io/pt/search?q=${encodeURIComponent(q)}`
+    ];
+    if (areaScope === 'all-lisbon-towns') {
+      urls.push(`https://my.propertium.io/?search[description]=Lisboa&search[operation]=sale&search[country]=pt`);
     }
     return dedupeStrings(urls);
   }
@@ -863,6 +1204,8 @@
     const modeSelect = document.getElementById('housing-mode');
     if (!form || !grid || !statusEl || !sourceSelect || !locationInput) return;
 
+    const hasRestoredState = restoreHousingSessionState();
+
     sourceSelect.value = HOUSING_STATE.source;
     if (!locationInput.value) locationInput.value = HOUSING_STATE.location;
     if (budgetInput) budgetInput.value = HOUSING_STATE.filters.maxBudget ? String(HOUSING_STATE.filters.maxBudget) : '';
@@ -876,6 +1219,24 @@
       e.preventDefault();
       loadHousingListings();
     });
+
+    if (hasRestoredState) {
+      renderHousingListings(HOUSING_STATE.items, HOUSING_STATE.fallback);
+      renderHousingStatusWithSummary(
+        HOUSING_STATE.status,
+        null,
+        HOUSING_STATE.source,
+        HOUSING_STATE.location,
+        { ...HOUSING_STATE.filters, areaNote: HOUSING_STATE.areaNote, areaUnknown: HOUSING_STATE.areaUnknown }
+      );
+      renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], HOUSING_STATE.relatedFallback, {
+        allowExpandSource: HOUSING_STATE.source !== 'all',
+        nearbyListings: HOUSING_STATE.hasPendingNearby ? HOUSING_STATE.nearbyItems : [],
+        nearbyAreas: HOUSING_STATE.nearbyAreas,
+        allSourceListings: HOUSING_STATE.hasPendingAllSourcePrefetched ? HOUSING_STATE.allSourcePrefetched : []
+      });
+      return;
+    }
 
     loadHousingListings({ bootstrap: true });
   }
@@ -891,9 +1252,16 @@
     HOUSING_STATE.source = source;
     HOUSING_STATE.location = location;
     HOUSING_STATE.filters = filters;
+    HOUSING_STATE.areaNote = filters.areaNote || '';
+    HOUSING_STATE.areaUnknown = !!filters.areaUnknown;
+    HOUSING_STATE.nearbyItems = [];
+    HOUSING_STATE.nearbyAreas = [];
+    HOUSING_STATE.hasPendingNearby = false;
+    HOUSING_STATE.allSourcePrefetched = [];
+    HOUSING_STATE.hasPendingAllSourcePrefetched = false;
 
     if (isBootstrap) {
-      renderHousingStatus('loading');
+      renderHousingStatusWithSummary('loading', null, source, location, filters);
       renderHousingAlternativeAction([], false);
       try {
         const firstLoad = await fetchRandomMixedFirstLoadListings(location, filters.searchMode || 'fast');
@@ -904,7 +1272,7 @@
           HOUSING_STATE.hasPendingRelated = false;
           HOUSING_STATE.hasBootstrapLoaded = true;
           renderHousingListings(firstLoad, false);
-          renderHousingStatus('success', T[currentLang]?.['housing.bootstrapLive'] || 'A mostrar anuncios aleatorios ao vivo de Imovirtual e Idealista.');
+          renderHousingStatusWithSummary('success', T[currentLang]?.['housing.bootstrapLive'] || 'A mostrar anuncios aleatorios ao vivo de Imovirtual e Idealista.', source, location, filters);
           return;
         }
       } catch (error) {
@@ -923,16 +1291,27 @@
         HOUSING_STATE.relatedItems = [];
         HOUSING_STATE.hasPendingRelated = false;
         renderHousingListings(matchedCached.exact, false);
-        renderHousingStatus('success', T[currentLang]?.['housing.cacheHit'] || 'Resultados em cache.');
+        renderHousingStatusWithSummary('success', T[currentLang]?.['housing.cacheHit'] || 'Resultados em cache.', source, location, filters);
         renderHousingAlternativeAction([], false);
         return;
       }
     }
 
-    renderHousingStatus('loading');
+    const alternativesPrefetchPromise = source !== 'all'
+      ? prefetchHousingAlternatives(source, location, filters)
+      : Promise.resolve({ nearbyListings: [], nearbyAreas: [], allSourceListings: [] });
+
+    renderHousingStatusWithSummary('loading', null, source, location, filters);
     renderHousingAlternativeAction([], false);
     try {
       const listings = await fetchHousingListings(source, location, filters.areaScope, filters.searchMode);
+      const prefetchedAlternatives = await resolveWithin(alternativesPrefetchPromise, 2200, { nearbyListings: [], nearbyAreas: [], allSourceListings: [] });
+      HOUSING_STATE.nearbyItems = Array.isArray(prefetchedAlternatives?.nearbyListings) ? prefetchedAlternatives.nearbyListings.slice(0, 8) : [];
+      HOUSING_STATE.nearbyAreas = Array.isArray(prefetchedAlternatives?.nearbyAreas) ? prefetchedAlternatives.nearbyAreas.slice(0, 5) : [];
+      HOUSING_STATE.hasPendingNearby = HOUSING_STATE.nearbyItems.length > 0;
+      HOUSING_STATE.allSourcePrefetched = Array.isArray(prefetchedAlternatives?.allSourceListings) ? prefetchedAlternatives.allSourceListings.slice(0, 8) : [];
+      HOUSING_STATE.hasPendingAllSourcePrefetched = HOUSING_STATE.allSourcePrefetched.length > 0;
+
       const diversifiedListings = ensureSourceDiversity(listings, source, location);
       setHousingCache(cacheKey, diversifiedListings);
       const matched = buildHousingMatchSets(diversifiedListings, filters, location);
@@ -946,20 +1325,30 @@
 
         if (source !== 'all') {
           if (HOUSING_STATE.hasPendingRelated) {
-            renderHousingStatus('noExact');
-            renderHousingAlternativeAction(HOUSING_STATE.relatedItems, false, { allowExpandSource: true });
+            renderHousingStatusWithSummary('noExact', T[currentLang]?.['housing.noExact'] || '', source, location, filters);
+            renderHousingAlternativeAction(HOUSING_STATE.relatedItems, false, {
+              allowExpandSource: true,
+              nearbyListings: HOUSING_STATE.nearbyItems,
+              nearbyAreas: HOUSING_STATE.nearbyAreas,
+              allSourceListings: HOUSING_STATE.allSourcePrefetched
+            });
           } else {
-            renderHousingStatus('sourceEmpty');
-            renderHousingAlternativeAction([], false, { allowExpandSource: true });
+            renderHousingStatusWithSummary('sourceEmpty', T[currentLang]?.['housing.sourceEmpty'] || '', source, location, filters);
+            renderHousingAlternativeAction([], false, {
+              allowExpandSource: true,
+              nearbyListings: HOUSING_STATE.nearbyItems,
+              nearbyAreas: HOUSING_STATE.nearbyAreas,
+              allSourceListings: HOUSING_STATE.allSourcePrefetched
+            });
           }
         } else if (HOUSING_STATE.hasPendingRelated) {
           renderHousingListings(HOUSING_STATE.relatedItems, false);
           HOUSING_STATE.relatedItems = [];
           HOUSING_STATE.hasPendingRelated = false;
-          renderHousingStatus('suggested');
+          renderHousingStatusWithSummary('suggested', T[currentLang]?.['housing.showingRelatable'] || '', source, location, filters);
           renderHousingAlternativeAction([], false);
         } else {
-          renderHousingStatus('empty');
+          renderHousingStatusWithSummary('empty', T[currentLang]?.['housing.empty'] || '', source, location, filters);
           renderHousingAlternativeAction([], false);
         }
         return;
@@ -968,18 +1357,32 @@
       HOUSING_STATE.fallback = false;
       HOUSING_STATE.relatedItems = [];
       HOUSING_STATE.hasPendingRelated = false;
+      HOUSING_STATE.hasPendingNearby = false;
+      HOUSING_STATE.hasPendingAllSourcePrefetched = false;
       renderHousingListings(matched.exact, false);
-      renderHousingStatus('success', T[currentLang]?.['housing.lastUpdated'] || '');
+      renderHousingStatusWithSummary('success', T[currentLang]?.['housing.lastUpdated'] || '', source, location, filters);
     } catch (error) {
       if (source !== 'all') {
+        const prefetchedAlternatives = await resolveWithin(alternativesPrefetchPromise, 2200, { nearbyListings: [], nearbyAreas: [], allSourceListings: [] });
+        HOUSING_STATE.nearbyItems = Array.isArray(prefetchedAlternatives?.nearbyListings) ? prefetchedAlternatives.nearbyListings.slice(0, 8) : [];
+        HOUSING_STATE.nearbyAreas = Array.isArray(prefetchedAlternatives?.nearbyAreas) ? prefetchedAlternatives.nearbyAreas.slice(0, 5) : [];
+        HOUSING_STATE.hasPendingNearby = HOUSING_STATE.nearbyItems.length > 0;
+        HOUSING_STATE.allSourcePrefetched = Array.isArray(prefetchedAlternatives?.allSourceListings) ? prefetchedAlternatives.allSourceListings.slice(0, 8) : [];
+        HOUSING_STATE.hasPendingAllSourcePrefetched = HOUSING_STATE.allSourcePrefetched.length > 0;
+
         HOUSING_STATE.items = [];
         HOUSING_STATE.relatedItems = [];
         HOUSING_STATE.hasPendingRelated = false;
         HOUSING_STATE.relatedFallback = false;
         HOUSING_STATE.fallback = false;
         renderHousingListings([], false);
-        renderHousingStatus('sourceUnavailable');
-        renderHousingAlternativeAction([], false, { allowExpandSource: true });
+        renderHousingStatusWithSummary('sourceUnavailable', T[currentLang]?.['housing.sourceUnavailable'] || '', source, location, filters);
+        renderHousingAlternativeAction([], false, {
+          allowExpandSource: true,
+          nearbyListings: HOUSING_STATE.nearbyItems,
+          nearbyAreas: HOUSING_STATE.nearbyAreas,
+          allSourceListings: HOUSING_STATE.allSourcePrefetched
+        });
         return;
       }
 
@@ -989,7 +1392,7 @@
       HOUSING_STATE.relatedFallback = false;
       HOUSING_STATE.fallback = false;
       renderHousingListings([], false);
-      renderHousingStatus('error');
+      renderHousingStatusWithSummary('error', T[currentLang]?.['housing.error'] || '', source, location, filters);
       renderHousingAlternativeAction([], false);
     }
   }
@@ -1003,12 +1406,14 @@
   async function fetchRandomMixedFirstLoadListings(location, searchMode) {
     const settled = await Promise.allSettled([
       fetchHousingListingsSingle('imovirtual', location, 'nearby', searchMode || 'fast'),
-      fetchHousingListingsSingle('idealista', location, 'nearby', searchMode || 'fast')
+      fetchHousingListingsSingle('idealista', location, 'nearby', searchMode || 'fast'),
+      fetchHousingListingsSingle('propertium', location, 'nearby', searchMode || 'fast')
     ]);
 
     const bySource = {
       imovirtual: [],
-      idealista: []
+      idealista: [],
+      propertium: []
     };
 
     settled.forEach(entry => {
@@ -1018,6 +1423,7 @@
       const config = detectListingConfig(clean[0]);
       if (config?.id === 'imovirtual') bySource.imovirtual = clean;
       if (config?.id === 'idealista') bySource.idealista = clean;
+      if (config?.id === 'propertium') bySource.propertium = clean;
     });
 
     if (!bySource.imovirtual.length) {
@@ -1026,12 +1432,16 @@
     if (!bySource.idealista.length) {
       bySource.idealista = await fetchPortalHomepageListings('idealista', 16);
     }
+    if (!bySource.propertium.length) {
+      bySource.propertium = await fetchPortalHomepageListings('propertium', 16);
+    }
 
     const mixed = [];
-    if (bySource.imovirtual.length) mixed.push(...pickRandomListings(bySource.imovirtual, 4));
-    if (bySource.idealista.length) mixed.push(...pickRandomListings(bySource.idealista, 4));
+    if (bySource.imovirtual.length) mixed.push(...pickRandomListings(bySource.imovirtual, 3));
+    if (bySource.idealista.length) mixed.push(...pickRandomListings(bySource.idealista, 3));
+    if (bySource.propertium.length) mixed.push(...pickRandomListings(bySource.propertium, 2));
 
-    const combined = dedupeListings([...bySource.imovirtual, ...bySource.idealista]);
+    const combined = dedupeListings([...bySource.imovirtual, ...bySource.idealista, ...bySource.propertium]);
     if (!combined.length) return [];
     mixed.push(...pickRandomListings(combined, 8));
 
@@ -1110,7 +1520,8 @@
     if (sourceId === 'all') {
       const settled = await Promise.allSettled([
         fetchHousingListingsSingle('imovirtual', location, areaScope, searchMode),
-        fetchHousingListingsSingle('idealista', location, areaScope, searchMode)
+        fetchHousingListingsSingle('idealista', location, areaScope, searchMode),
+        fetchHousingListingsSingle('propertium', location, areaScope, searchMode)
       ]);
       const merged = [];
       settled.forEach(entry => {
@@ -1397,6 +1808,7 @@
     if (!url || !cfg) return false;
     if (cfg.id === 'imovirtual') return /imovirtual\.com\/pt\/anuncio\//i.test(url);
     if (cfg.id === 'idealista') return /idealista\.(pt|com)\/imovel\//i.test(url);
+    if (cfg.id === 'propertium') return /propertium\.(io|com)\/.*property|propertium\.(io|com)\/.*listing/i.test(url);
     return url.includes(cfg.domain);
   }
 
@@ -1518,6 +1930,7 @@
     const source = (item?.source || '').toLowerCase();
     const url = (item?.url || '').toLowerCase();
     if (source.includes('idealista') || url.includes('idealista.')) return HOUSING_SOURCES.idealista;
+    if (source.includes('propertium') || url.includes('propertium.')) return HOUSING_SOURCES.propertium;
     return HOUSING_SOURCES.imovirtual;
   }
 
@@ -1527,6 +1940,7 @@
     if (!clean) return false;
     if (cfg.id === 'imovirtual') return /^https:\/\/(www\.)?imovirtual\.com\/pt\/anuncio\//i.test(clean);
     if (cfg.id === 'idealista') return /^https:\/\/(www\.)?idealista\.(pt|com)\/imovel\//i.test(clean);
+    if (cfg.id === 'propertium') return /^https:\/\/(www\.)?propertium\.(io|com)\/.*property|^https:\/\/(www\.)?propertium\.(io|com)\/.*listing/i.test(clean) || url.includes('propertium');
     return false;
   }
 
@@ -1564,12 +1978,14 @@
   function getPrivateRuntimeConfig() {
     let localCfg = {};
     try {
-      const raw = window.localStorage.getItem('casajaPrivateConfig');
+      const raw = window.localStorage.getItem('myHomePrivateConfig') || window.localStorage.getItem('casajaPrivateConfig');
       localCfg = raw ? JSON.parse(raw) : {};
     } catch (error) {
       localCfg = {};
     }
-    const globalCfg = (typeof window !== 'undefined' && window.__CASAJA_PRIVATE__) ? window.__CASAJA_PRIVATE__ : {};
+    const globalCfg = (typeof window !== 'undefined' && (window.__MYHOME_PRIVATE__ || window.__CASAJA_PRIVATE__))
+      ? (window.__MYHOME_PRIVATE__ || window.__CASAJA_PRIVATE__)
+      : {};
     return { ...localCfg, ...globalCfg };
   }
 
@@ -1591,11 +2007,17 @@
     const sortSelect = document.getElementById('housing-sort');
     const modeSelect = document.getElementById('housing-mode');
     const budgetValue = parseInt((budgetInput?.value || '').replace(/[^\d]/g, ''), 10);
+    const normalizedArea = normalizeAreaInput(areaInput?.value || '');
+    if (normalizedArea.correctedFrom && areaInput) {
+      areaInput.value = normalizedArea.area;
+    }
     return {
       maxBudget: Number.isFinite(budgetValue) && budgetValue > 0 ? budgetValue : null,
       minRooms: parseInt(roomsSelect?.value || '0', 10) || 0,
       areaScope: scopeSelect?.value || 'nearby',
-      area: (areaInput?.value || '').trim(),
+      area: normalizedArea.area,
+      areaNote: normalizedArea.correctedFrom,
+      areaUnknown: normalizedArea.unknown,
       sort: sortSelect?.value || 'relevance',
       searchMode: modeSelect?.value || 'fast',
       location: location || HOUSING_STATE.location
@@ -1640,14 +2062,31 @@
     if (!features) return false;
     const budget = filters.maxBudget;
     const minRooms = filters.minRooms;
-    const selectedArea = slugifyLocation(filters.area || '');
+    const hasValidArea = !filters.areaUnknown;
+    const selectedArea = hasValidArea ? slugifyLocation(filters.area || '') : '';
     const locationSlug = slugifyLocation(location || '');
+    const anchorArea = findAreaCoordinate(filters.area || location || '', location || '');
 
     if (budget && (features.price === null || features.price > budget)) return false;
     if (minRooms && (features.rooms === null || features.rooms < minRooms)) return false;
+
+    if (selectedArea) {
+      const directAreaHit = features.searchable.includes(selectedArea);
+      const geoAreaHit = matchesGeoRadius(features, anchorArea, 3);
+      if (!directAreaHit && !geoAreaHit) return false;
+    }
+
     if (filters.areaScope === 'all-lisbon-towns' && !isLisbonAreaText(features.searchable)) return false;
-    if (filters.areaScope === 'nearby' && locationSlug && !features.searchable.includes(locationSlug)) return false;
-    if (selectedArea && !features.searchable.includes(selectedArea)) return false;
+
+    if (locationSlug) {
+      const directLocationHit = features.searchable.includes(locationSlug);
+      const broadCity = isBroadCityLocation(locationSlug);
+      const geoLocationHit = matchesGeoRadius(features, anchorArea, filters.areaScope === 'nearby' ? 10 : 20);
+
+      if (!broadCity && !directLocationHit && !geoLocationHit) return false;
+      if (filters.areaScope === 'nearby' && !directLocationHit && !geoLocationHit) return false;
+    }
+
     return true;
   }
 
@@ -1764,15 +2203,75 @@
       ? copy['housing.loading']
       : state === 'error'
         ? copy['housing.error']
+        : state === 'sourceEmpty'
+          ? copy['housing.sourceEmpty']
+          : state === 'sourceUnavailable'
+            ? copy['housing.sourceUnavailable']
         : state === 'empty'
           ? copy['housing.empty']
           : state === 'noExact'
             ? copy['housing.noExact']
             : state === 'suggested'
               ? copy['housing.showingRelatable']
+              : state === 'nearbySuggested'
+                ? copy['housing.showingNearby']
           : '');
     el.textContent = text || '';
     el.style.display = text ? 'block' : 'none';
+    persistHousingSessionState();
+  }
+
+  function buildHousingStatusSummary(source, location, filters) {
+    const copy = T[currentLang] || {};
+    const sourceLabel = HOUSING_SOURCES[source]?.label || source || '—';
+    const areaPart = filters.area ? ` — ${filters.area}` : '';
+    const template = copy['housing.summary'] || 'Fonte {source} · {location}{area}';
+    let summary = template
+      .replace('{source}', sourceLabel)
+      .replace('{location}', location || 'Lisboa')
+      .replace('{area}', areaPart);
+
+    const notes = [];
+    if (filters.areaNote) {
+      const corrected = (copy['housing.areaCorrected'] || 'Zona corrigida de "{from}" para "{to}"')
+        .replace('{from}', filters.areaNote)
+        .replace('{to}', filters.area || filters.areaNote);
+      notes.push(corrected);
+    }
+    if (filters.areaUnknown && filters.area) {
+      notes.push(copy['housing.areaUnknown'] || 'Zona não reconhecida; a pesquisa usou apenas a localização.');
+    }
+
+    if (notes.length) summary = `${summary} — ${notes.join(' ')}`;
+    return summary;
+  }
+
+  function renderHousingStatusWithSummary(state, baseText, source, location, filters) {
+    let resolvedBase = baseText;
+    if (!resolvedBase) {
+      const copy = T[currentLang] || {};
+      resolvedBase = state === 'loading'
+        ? copy['housing.loading']
+        : state === 'error'
+          ? copy['housing.error']
+          : state === 'sourceEmpty'
+            ? copy['housing.sourceEmpty']
+            : state === 'sourceUnavailable'
+              ? copy['housing.sourceUnavailable']
+              : state === 'empty'
+                ? copy['housing.empty']
+                : state === 'noExact'
+                  ? copy['housing.noExact']
+                  : state === 'suggested'
+                    ? copy['housing.showingRelatable']
+                    : state === 'nearbySuggested'
+                      ? copy['housing.showingNearby']
+                      : baseText;
+    }
+
+    const summary = buildHousingStatusSummary(source, location, filters || {});
+    const text = summary ? [resolvedBase, summary].filter(Boolean).join(' • ') : resolvedBase;
+    renderHousingStatus(state, text);
   }
 
   function renderHousingListings(listings, isFallback) {
@@ -1782,6 +2281,7 @@
     const directListings = (listings || []).filter(item => isDirectListingLink(item?.url, detectListingConfig(item)));
     if (!directListings.length) {
       grid.innerHTML = '';
+      persistHousingSessionState();
       return;
     }
     grid.innerHTML = directListings.slice(0, 8).map(item => `
@@ -1800,6 +2300,7 @@
         </div>
       </article>
     `).join('');
+    persistHousingSessionState();
   }
 
   function renderHousingAlternativeAction(relatedListings, isFallback, options = {}) {
@@ -1807,15 +2308,23 @@
     if (!container) return;
     const copy = T[currentLang] || {};
     const hasRelated = Array.isArray(relatedListings) && relatedListings.length > 0;
+    const nearbyListings = Array.isArray(options.nearbyListings) ? options.nearbyListings : [];
+    const nearbyAreas = Array.isArray(options.nearbyAreas) ? options.nearbyAreas : [];
+    const allSourceListings = Array.isArray(options.allSourceListings) ? options.allSourceListings : [];
+    const hasNearby = nearbyListings.length > 0;
     const allowExpandSource = !!options.allowExpandSource && HOUSING_STATE.source !== 'all';
 
-    if (!hasRelated && !allowExpandSource) {
+    if (!hasRelated && !hasNearby && !allowExpandSource) {
       container.innerHTML = '';
       container.style.display = 'none';
+      persistHousingSessionState();
       return;
     }
 
     const actions = [];
+    if (hasNearby) {
+      actions.push(`<button class="btn btn-primary" id="housing-show-nearby" type="button">${copy['housing.showNearby'] || 'Show nearby listings (5-10 km)'}</button>`);
+    }
     if (hasRelated) {
       actions.push(`<button class="btn btn-ghost" id="housing-show-relatable" type="button">${copy['housing.showRelatable'] || 'Show relatable listings'}</button>`);
     }
@@ -1825,30 +2334,71 @@
 
     container.innerHTML = actions.join('');
     container.style.display = 'block';
+    persistHousingSessionState();
+
+    const nearbyBtn = document.getElementById('housing-show-nearby');
+    if (nearbyBtn) {
+      nearbyBtn.addEventListener('click', () => {
+        HOUSING_STATE.items = nearbyListings.slice(0, 8);
+        HOUSING_STATE.fallback = !!isFallback;
+        renderHousingListings(HOUSING_STATE.items, !!isFallback);
+        const suffix = nearbyAreas.length
+          ? ` ${copy['housing.nearbyHintPrefix'] || 'Areas:'} ${nearbyAreas.join(', ')}`
+          : '';
+        renderHousingStatus('nearbySuggested', `${copy['housing.showingNearby'] || 'Showing nearby listings around your area.'}${suffix}`);
+        renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], false, {
+          allowExpandSource: HOUSING_STATE.source !== 'all',
+          nearbyListings: HOUSING_STATE.hasPendingNearby ? HOUSING_STATE.nearbyItems : [],
+          nearbyAreas: HOUSING_STATE.nearbyAreas,
+          allSourceListings: HOUSING_STATE.hasPendingAllSourcePrefetched ? HOUSING_STATE.allSourcePrefetched : []
+        });
+      });
+    }
 
     const btn = document.getElementById('housing-show-relatable');
     if (btn) {
       btn.addEventListener('click', () => {
         HOUSING_STATE.items = relatedListings.slice(0, 8);
-        HOUSING_STATE.relatedItems = [];
-        HOUSING_STATE.hasPendingRelated = false;
-        HOUSING_STATE.relatedFallback = false;
         HOUSING_STATE.fallback = !!isFallback;
         renderHousingListings(HOUSING_STATE.items, !!isFallback);
         renderHousingStatus('suggested');
-        renderHousingAlternativeAction([], false);
+        renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], false, {
+          allowExpandSource: HOUSING_STATE.source !== 'all',
+          nearbyListings: HOUSING_STATE.hasPendingNearby ? HOUSING_STATE.nearbyItems : [],
+          nearbyAreas: HOUSING_STATE.nearbyAreas,
+          allSourceListings: HOUSING_STATE.hasPendingAllSourcePrefetched ? HOUSING_STATE.allSourcePrefetched : []
+        });
       });
     }
 
     const expandBtn = document.getElementById('housing-expand-source');
     if (expandBtn) {
       expandBtn.addEventListener('click', () => {
+        if (allSourceListings.length) {
+          HOUSING_STATE.source = 'all';
+          HOUSING_STATE.items = allSourceListings.slice(0, 8);
+          HOUSING_STATE.fallback = false;
+          HOUSING_STATE.relatedItems = [];
+          HOUSING_STATE.hasPendingRelated = false;
+          HOUSING_STATE.nearbyItems = [];
+          HOUSING_STATE.hasPendingNearby = false;
+          HOUSING_STATE.allSourcePrefetched = [];
+          HOUSING_STATE.hasPendingAllSourcePrefetched = false;
+          const sourceSelect = document.getElementById('housing-source');
+          if (sourceSelect) sourceSelect.value = 'all';
+          renderHousingListings(HOUSING_STATE.items, false);
+          renderHousingStatus('success', copy['housing.prefetchedAllSources'] || 'Showing prefetched listings from all portals.');
+          renderHousingAlternativeAction([], false);
+          return;
+        }
         const sourceSelect = document.getElementById('housing-source');
         if (sourceSelect) sourceSelect.value = 'all';
         HOUSING_STATE.source = 'all';
         loadHousingListings();
       });
     }
+
+    persistHousingSessionState();
   }
 
   /* ═══════════════════════════════════════
