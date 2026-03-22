@@ -11,6 +11,12 @@
   let chartsInitialized = false;
   const chartInstances = {};
   const FORM_ENDPOINT = 'https://formspree.io/f/xlgpolvp'; // Formspree endpoint for contact form
+  // Point front-end to the Groq Flask API. Adjust if hosted elsewhere.
+  const CHATBOT_API_URL = 'http://localhost:5000/api/chat';
+  const CHATBOT_CLEAR_URL = 'http://localhost:5000/api/clear-session';
+  const CHAT_HISTORY_KEY = 'myhome-chat-history';
+  const CHAT_CONTROLS_KEY = 'myhome-chat-controls-collapsed';
+  const CHAT_MODE_KEY = 'myhome-chat-mode';
   const MARKET_STATE = { referenceRate: null, inflation: null, lending: null, updatedAt: null };
   const BANK_OFFERS_PT = [
     { bank: 'Caixa Geral de Depósitos', type: 'Taxa mista', rate: 'Spread desde 0.75%', note: { pt: 'Condição associada a domiciliação de ordenado e seguros', en: 'Condition linked to salary domiciliation and bundled insurance' } },
@@ -3073,7 +3079,164 @@
     const messagesEl = document.getElementById('chatbot-messages');
     const input = document.getElementById('chatbot-input');
     const sendBtn = document.getElementById('chatbot-send');
+    const controlsBody = document.getElementById('chatbot-controls-body');
+    const controlsToggle = document.getElementById('chatbot-controls-toggle');
 
+    const modeButtons = Array.from(document.querySelectorAll('.chatbot-mode-btn'));
+    const contextToggle = document.getElementById('chatbot-context');
+    const typingIndicator = document.getElementById('chatbot-typing');
+    const footStatus = document.getElementById('chatbot-foot-status');
+    const footMeta = document.getElementById('chatbot-foot-meta');
+    let currentMode = 'quick';
+    let isSending = false;
+    let sessionId = localStorage.getItem('myhome-chat-session');
+    if (!sessionId) {
+      sessionId = `sess-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+      localStorage.setItem('myhome-chat-session', sessionId);
+    }
+
+    const FALLBACK = {
+      pt: {
+        financing: 'Taxa de esforço ideal: 30-35%. Compara TAN/TAEG em 3-4 bancos e pede pré-aprovação antes de procurar casa.',
+        imt: 'IMT varia por valor e finalidade. Conta com ~8-10% de custos totais (IMT + IS + registos + comissão bancária).',
+        downpayment: 'Entrada típica 10-20%. Programa Garantia Pública pode cobrir até 100% para jovens elegíveis.',
+        support: 'Verifica Porta 65, Garantia Pública Jovem e eventuais isenções de IMT para 1ª habitação.',
+        default: 'Estou offline, mas já agora: começa por saber quanto podes investir (regra 35%), pede pré-aprovação e junta 25-30% do valor para entrada+custos.'
+      },
+      en: {
+        financing: 'Keep effort rate near 30-35%. Compare TAN/TAEG across 3-4 banks and get pre-approval before hunting homes.',
+        imt: 'IMT depends on price and purpose. Expect roughly 8-10% total costs (IMT + stamp duty + registry + bank fees).',
+        downpayment: 'Typical down payment is 10-20%. The Youth Public Guarantee may cover up to 100% for eligible buyers.',
+        support: 'Check Porta 65 rent support, Youth Public Guarantee, and potential IMT reductions for first homes.',
+        default: 'If I am offline: start by sizing your budget (35% rule), request pre-approval, and save 25-30% for down payment + closing costs.'
+      }
+    };
+
+    const fallbackAnswer = (text) => {
+      const lower = (text || '').toLowerCase();
+      const copy = currentLang === 'pt' ? FALLBACK.pt : FALLBACK.en;
+      if (lower.includes('imt') || lower.includes('tax')) return copy.imt;
+      if (lower.includes('financ') || lower.includes('mort') || lower.includes('emprest') || lower.includes('loan')) return copy.financing;
+      if (lower.includes('entrada') || lower.includes('down') || lower.includes('deposit')) return copy.downpayment;
+      if (lower.includes('apoio') || lower.includes('support') || lower.includes('garantia') || lower.includes('porta 65')) return copy.support;
+      return copy.default;
+    };
+
+    const persistHistory = (items) => {
+      try { sessionStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(items.slice(-40))); } catch (e) { /* ignore */ }
+    };
+
+    const restoreHistory = () => {
+      try {
+        const raw = sessionStorage.getItem(CHAT_HISTORY_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        parsed.forEach(msg => addMessage(msg.text || '', msg.role || 'bot'));
+        return parsed;
+      } catch (e) {
+        return [];
+      }
+    };
+
+    let history = restoreHistory();
+    // Always default to step-by-step (thinking) on load; override any stored mode.
+    let savedMode = 'thinking';
+    try { sessionStorage.setItem(CHAT_MODE_KEY, 'thinking'); } catch (e) { savedMode = 'thinking'; }
+
+    const setMode = (mode) => {
+      currentMode = mode;
+      modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === mode));
+      footMeta.textContent = `Groq · modo ${mode === 'quick' ? 'curto' : mode}`;
+      try { sessionStorage.setItem(CHAT_MODE_KEY, mode); } catch (e) { /* ignore */ }
+    };
+
+    const getSelectedMode = () => {
+      const active = document.querySelector('.chatbot-mode-btn.active');
+      return active?.getAttribute('data-mode') || currentMode;
+    };
+
+    const setTyping = (isVisible) => {
+      if (!typingIndicator) return;
+      typingIndicator.classList.toggle('visible', !!isVisible);
+    };
+
+    const setFoot = (status, meta) => {
+      if (footStatus) footStatus.textContent = status;
+      if (footMeta && meta) footMeta.textContent = meta;
+    };
+
+    const addMessage = (text, type) => {
+      const div = document.createElement('div');
+      div.className = `chat-msg ${type}`;
+      const span = document.createElement('span');
+      span.textContent = text;
+      div.appendChild(span);
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      history.push({ role: type === 'bot' ? 'assistant' : 'user', text });
+      persistHistory(history);
+    };
+
+    const buildProfileContext = () => {
+      const city = document.getElementById('housing-location')?.value || 'Lisboa';
+      const income = document.getElementById('aff-salary')?.value || '';
+      const savings = document.getElementById('aff-savings')?.value || '';
+      const expenses = document.getElementById('aff-expenses')?.value || '';
+      return {
+        country: 'Portugal',
+        city,
+        employment: income ? `income=${income}` : '',
+        goal: 'first home',
+        note: `expenses=${expenses}; savings=${savings}`
+      };
+    };
+
+    const sendToGroq = async (userMessage) => {
+      if (!userMessage || isSending) return;
+      isSending = true;
+      const activeMode = getSelectedMode();
+      if (activeMode !== currentMode) setMode(activeMode);
+      setTyping(true);
+      setFoot(currentLang === 'pt' ? 'A consultar Groq...' : 'Talking to Groq...', `Groq · modo ${activeMode === 'quick' ? 'curto' : activeMode}`);
+
+      try {
+        const res = await fetch(CHATBOT_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userMessage,
+            session_id: sessionId,
+            auto_detect_language: true,
+            use_context: !!contextToggle?.checked,
+            mode: activeMode,
+            profile: buildProfileContext()
+          })
+        });
+
+        if (!res.ok) throw new Error('Groq API unavailable');
+        const data = await res.json();
+        const reply = (data?.response || '').trim() || fallbackAnswer(userMessage);
+        addMessage(reply, 'bot');
+        setFoot(currentLang === 'pt' ? 'Pronto' : 'Ready', `Groq · ${data.mode || activeMode}`);
+      } catch (error) {
+        addMessage(fallbackAnswer(userMessage), 'bot');
+        setFoot(currentLang === 'pt' ? 'Modo offline' : 'Offline mode', 'Groq indisponível');
+      } finally {
+        isSending = false;
+        setTyping(false);
+      }
+    };
+
+    const sendMessage = () => {
+      const text = input.value.trim();
+      if (!text) return;
+      addMessage(text, 'user');
+      input.value = '';
+      sendToGroq(text);
+    };
+
+    // Interactions
     fab.addEventListener('click', () => {
       const isOpen = panel.classList.toggle('open');
       panel.setAttribute('aria-hidden', !isOpen);
@@ -3085,62 +3248,52 @@
       panel.setAttribute('aria-hidden', 'true');
     });
 
-    // Quick question buttons
     document.querySelectorAll('.quick-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const q = btn.getAttribute('data-question');
-        const label = btn.textContent;
-        addMessage(label, 'user');
-        setTimeout(() => {
-          const response = CHATBOT_RESPONSES[currentLang][q] || CHATBOT_RESPONSES[currentLang].default;
-          addMessage(response, 'bot');
-        }, 600);
+        const question = btn.textContent.trim();
+        addMessage(question, 'user');
+        sendToGroq(question);
       });
     });
 
-    // Send custom message
-    function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
-      addMessage(text, 'user');
-      input.value = '';
+    modeButtons.forEach(btn => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-mode')));
+    });
 
-      setTimeout(() => {
-        const lower = text.toLowerCase();
-        let answer;
-        const responses = CHATBOT_RESPONSES[currentLang];
-
-        if (lower.includes('imt') || lower.includes('imposto') || lower.includes('tax')) {
-          answer = responses.imt;
-        } else if (lower.includes('financ') || lower.includes('crédit') || lower.includes('credit') || lower.includes('mortgage') || lower.includes('empréstimo') || lower.includes('loan')) {
-          answer = responses.financing;
-        } else if (lower.includes('mercado') || lower.includes('taxa') || lower.includes('euribor') || lower.includes('banco') || lower.includes('market') || lower.includes('rate')) {
-          const refRate = (MARKET_STATE.referenceRate ?? 1.8).toFixed(2);
-          const lendRate = (MARKET_STATE.lending ?? 4.2).toFixed(2);
-          answer = currentLang === 'pt'
-            ? `No último dado disponível, a taxa real está em ${refRate}% e a taxa média de empréstimo em ${lendRate}%. Usa esta referência para comparar propostas entre bancos e confirmar custo total no simulador.`
-            : `In the latest available data, real interest is ${refRate}% and average lending rate is ${lendRate}%. Use this as a benchmark when comparing bank offers and total cost in the simulator.`;
-        } else if (lower.includes('entrada') || lower.includes('deposit') || lower.includes('sinal') || lower.includes('down payment')) {
-          answer = responses.downpayment;
-        } else if (lower.includes('apoio') || lower.includes('support') || lower.includes('garantia') || lower.includes('porta 65') || lower.includes('government')) {
-          answer = responses.support;
-        } else {
-          answer = responses.default;
-        }
-        addMessage(answer, 'bot');
-      }, 800);
+    if (controlsToggle && controlsBody) {
+      const setCollapsed = (state) => {
+        controlsBody.classList.toggle('collapsed', state);
+        controlsToggle.classList.toggle('is-collapsed', state);
+        controlsToggle.setAttribute('aria-pressed', state ? 'true' : 'false');
+        controlsToggle.textContent = state ? '▼' : '▲';
+      };
+      const saved = sessionStorage.getItem(CHAT_CONTROLS_KEY) === '1';
+      setCollapsed(saved);
+      controlsToggle.addEventListener('click', () => {
+        const next = !controlsBody.classList.contains('collapsed');
+        setCollapsed(next);
+        try { sessionStorage.setItem(CHAT_CONTROLS_KEY, next ? '1' : '0'); } catch (e) { /* ignore */ }
+      });
     }
 
     sendBtn.addEventListener('click', sendMessage);
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
-    function addMessage(text, type) {
-      const div = document.createElement('div');
-      div.className = `chat-msg ${type}`;
-      div.innerHTML = `<span>${text}</span>`;
-      messagesEl.appendChild(div);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
+    // Allow clearing context manually if needed
+    if (CHATBOT_CLEAR_URL) {
+      panel.addEventListener('keydown', async (e) => {
+        if (e.key === 'Escape' && e.ctrlKey) {
+          try {
+            await fetch(CHATBOT_CLEAR_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
+            setFoot(currentLang === 'pt' ? 'Memória limpa' : 'Memory cleared', 'Groq · sessão reiniciada');
+          } catch (err) {
+            // ignore
+          }
+        }
+      });
     }
+
+    setMode(savedMode || 'quick');
   }
 
   /* ═══════════════════════════════════════

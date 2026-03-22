@@ -53,26 +53,65 @@
     <div class="chatbot-panel glass" id="chatbot-panel" aria-hidden="true">
       <div class="chatbot-header">
         <div class="chatbot-avatar">AI</div>
-        <div>
-          <div class="chatbot-name" data-translate="chatbot.name">AssistenteCasa</div>
-          <div class="chatbot-status" data-translate="chatbot.status">Online • Responde em segundos</div>
+        <div class="chatbot-header-copy">
+          <div class="chatbot-name" data-translate="chatbot.name">My Home Assistant</div>
+          <div class="chatbot-status-row">
+            <span class="chatbot-dot"></span>
+            <span class="chatbot-status">Groq · Responde em segundos</span>
+          </div>
         </div>
         <button class="chatbot-close-btn" id="chatbot-close" aria-label="Fechar chat">&#10005;</button>
       </div>
+
+      <div class="chatbot-controls" id="chatbot-controls">
+        <div class="chatbot-controls-top">
+          <div class="chatbot-meta">
+            <div class="chatbot-pill">Finanças PT · Habitação · UE</div>
+            <div class="chatbot-pill ghost">Multilingue · Links oficiais</div>
+          </div>
+          <button class="chatbot-collapse-btn" id="chatbot-controls-toggle" aria-label="Mostrar/ocultar controlos">▼</button>
+        </div>
+
+        <div class="chatbot-controls-body" id="chatbot-controls-body">
+          <div class="chatbot-toolbar">
+            <div class="chatbot-modes" id="chatbot-modes" role="group" aria-label="Modo de resposta">
+              <button class="chatbot-mode-btn active" data-mode="quick">Curto</button>
+              <button class="chatbot-mode-btn" data-mode="thinking">Passo a passo</button>
+              <button class="chatbot-mode-btn" data-mode="detailed">Detalhado</button>
+            </div>
+            <label class="chatbot-toggle">
+              <input type="checkbox" id="chatbot-context" checked />
+              <span>Memória curta</span>
+            </label>
+          </div>
+
+          <div class="chatbot-quick" id="chatbot-quick">
+            <button class="quick-btn" data-question="financing" data-translate="chatbot.q1">Financiamento</button>
+            <button class="quick-btn" data-question="imt" data-translate="chatbot.q2">O que é o IMT?</button>
+            <button class="quick-btn" data-question="downpayment" data-translate="chatbot.q3">Entrada mínima</button>
+            <button class="quick-btn" data-question="support" data-translate="chatbot.q4">Apoios estado</button>
+          </div>
+        </div>
+      </div>
+
       <div class="chatbot-messages" id="chatbot-messages">
         <div class="chat-msg bot">
           <span data-translate="chatbot.greeting">Olá! Sou o teu assistente para a primeira casa. O que te preocupa mais?</span>
         </div>
       </div>
-      <div class="chatbot-quick" id="chatbot-quick">
-        <button class="quick-btn" data-question="financing" data-translate="chatbot.q1">Financiamento</button>
-        <button class="quick-btn" data-question="imt" data-translate="chatbot.q2">O que é o IMT?</button>
-        <button class="quick-btn" data-question="downpayment" data-translate="chatbot.q3">Entrada mínima</button>
-        <button class="quick-btn" data-question="support" data-translate="chatbot.q4">Apoios estado</button>
-      </div>
+
       <div class="chatbot-input-row">
-        <input type="text" class="chatbot-input" id="chatbot-input" placeholder="Escreve a tua pergunta..." data-translate-placeholder="chatbot.placeholder" />
+        <div class="chatbot-field">
+          <input type="text" class="chatbot-input" id="chatbot-input" placeholder="Escreve a tua pergunta..." data-translate-placeholder="chatbot.placeholder" />
+          <div class="chatbot-typing" id="chatbot-typing" aria-live="polite">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
         <button class="chatbot-send" id="chatbot-send" aria-label="Enviar">&#10148;</button>
+      </div>
+      <div class="chatbot-foot">
+        <div class="chatbot-foot-left" id="chatbot-foot-status">Pronto</div>
+        <div class="chatbot-foot-right" id="chatbot-foot-meta">Groq · modo curto</div>
       </div>
     </div>
     <button class="chatbot-fab" id="chatbot-fab" aria-label="Abrir assistente">

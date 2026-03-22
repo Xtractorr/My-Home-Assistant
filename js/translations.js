@@ -27,7 +27,7 @@ const T = {
     'onboarding.cta': 'Começar a explorar',
 
     // Chatbot
-    'chatbot.name': 'AssistenteCasa',
+    'chatbot.name': 'My Home Assistant',
     'chatbot.status': 'Online • Responde em segundos',
     'chatbot.greeting': 'Olá! Sou o teu assistente para a primeira casa. O que te preocupa mais?',
     'chatbot.q1': 'Financiamento',
@@ -351,7 +351,7 @@ const T = {
     'onboarding.tip3': '🗺️ Follow the journey guide to understand the process',
     'onboarding.cta': 'Start exploring',
 
-    'chatbot.name': 'HomeAssistant',
+    'chatbot.name': 'My Home Assistant',
     'chatbot.status': 'Online • Replies in seconds',
     'chatbot.greeting': "Hi! I'm your first-home assistant. What worries you most?",
     'chatbot.q1': 'Financing',
