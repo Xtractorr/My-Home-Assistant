@@ -571,10 +571,14 @@
     const c = getChartColors();
     const defaults = Chart.defaults;
     defaults.font.family = "'Inter', sans-serif";
-    defaults.font.size = 13;
-    defaults.color = '#4A4A5E';
+    defaults.font.size = 14;
+    defaults.color = '#1A1A2E';
+    defaults.aspectRatio = 1.3;
     defaults.plugins.legend.labels.usePointStyle = true;
     defaults.plugins.legend.labels.padding = 16;
+    defaults.plugins.legend.labels.font = { size: 14, weight: '600' };
+    defaults.responsive = true;
+    defaults.maintainAspectRatio = false;
 
     // Chart 1: When plan to buy (Pie/Doughnut)
     chartInstances.when = new Chart(document.getElementById('chart-when'), {
@@ -592,10 +596,11 @@
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        cutout: '60%',
+        maintainAspectRatio: false,
+        aspectRatio: 1.1,
+        cutout: '58%',
         plugins: {
-          legend: { position: 'bottom' },
+          legend: { position: 'bottom', labels: { boxWidth: 12 } },
           tooltip: {
             callbacks: {
               label: (ctx) => {
@@ -606,6 +611,7 @@
             }
           }
         },
+        layout: { padding: { bottom: 40 } },
         animation: { animateRotate: true, animateScale: true, duration: 1200 }
       }
     });
@@ -628,12 +634,13 @@
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
+        aspectRatio: 1.4,
         indexAxis: 'y',
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false }, ticks: { callback: v => v } },
-          y: { grid: { display: false } }
+          x: { grid: { display: false }, ticks: { callback: v => v, font: { size: 13, weight: '600' }, color: '#1A1A2E' } },
+          y: { grid: { display: false }, ticks: { font: { size: 13, weight: '600' }, color: '#1A1A2E' } }
         },
         animation: { duration: 1200 }
       }
@@ -655,9 +662,11 @@
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        cutout: '60%',
-        plugins: { legend: { position: 'bottom' } },
+        maintainAspectRatio: false,
+        aspectRatio: 1.1,
+        cutout: '58%',
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+        layout: { padding: { bottom: 40 } },
         animation: { animateRotate: true, duration: 1200 }
       }
     });
@@ -680,14 +689,16 @@
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
+        aspectRatio: 1.5,
         plugins: { legend: { display: false } },
         scales: {
           y: {
             grid: { color: 'rgba(0,0,0,0.04)' },
-            beginAtZero: true
+            beginAtZero: true,
+            ticks: { font: { size: 13, weight: '600' }, color: '#1A1A2E' }
           },
-          x: { grid: { display: false } }
+          x: { grid: { display: false }, ticks: { font: { size: 13, weight: '600' }, color: '#1A1A2E' } }
         },
         animation: { duration: 1200 }
       }

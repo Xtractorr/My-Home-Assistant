@@ -908,16 +908,24 @@ h1, h2, h3, h4 { font-family: var(--font-heading); line-height: 1.2; }
 .chart-container {
   position: relative;
   width: 100%;
-  max-height: 260px;
-  margin-bottom: 16px;
+  height: 448px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
 }
-.chart-container canvas { width: 100% !important; }
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  transform: translateY(10%);
+  transform-origin: top center;
+}
 
 .chart-insight {
   padding: 10px 14px;
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.6;
+  margin-top: 6px;
 }
 
 .insight-image-card {
