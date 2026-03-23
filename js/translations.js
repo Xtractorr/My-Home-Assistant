@@ -104,6 +104,8 @@ const T = {
     'dados.chart4.title': 'Impacto nas decisões de vida',
     'dados.chart4.sub': 'Afetou decisões importantes?',
     'dados.chart4.insight': '📌 Não ter casa própria afeta planos de vida de 85% dos inquiridos.',
+    'dados.realTitle': 'Dados reais, decisões melhores',
+    'dados.realSubtitle': 'Esta secção cruza perceções reais de jovens em Portugal com visualizações simples para apoiar decisões com mais clareza.',
 
     // Simuladores
     'sim.tag': 'Ferramentas interativas',
@@ -300,9 +302,12 @@ const T = {
     'contact.name': 'Nome',
     'contact.email': 'Email',
     'contact.subject': 'Assunto',
+    'contact.extraPrompt': 'Sugere novas funcionalidades ou perguntas que não estão na FAQ — avaliamos e tentamos integrar nas próximas versões.',
     'contact.message': 'Mensagem',
     'contact.optFeedback': 'Feedback sobre a plataforma',
+    'contact.optFeature': 'Pedido de funcionalidade',
     'contact.optDoubt': 'Dúvida sobre o processo',
+    'contact.optQuestion': 'Pergunta que falta na FAQ',
     'contact.optCollab': 'Colaboração / parceria',
     'contact.optOther': 'Outro',
     'contact.send': 'Enviar mensagem',
@@ -425,6 +430,8 @@ const T = {
     'dados.chart4.title': 'Impact on life decisions',
     'dados.chart4.sub': 'Has it affected important decisions?',
     'dados.chart4.insight': "📌 Not owning a home affects life plans for 85% of respondents.",
+    'dados.realTitle': 'Real data, better decisions',
+    'dados.realSubtitle': 'This section combines real perceptions from young people in Portugal with simple visuals to support clearer decisions.',
 
     'sim.tag': 'Interactive tools',
     'sim.title': 'Simulators for your situation',
@@ -611,9 +618,12 @@ const T = {
     'contact.name': 'Name',
     'contact.email': 'Email',
     'contact.subject': 'Subject',
+    'contact.extraPrompt': 'Suggest features or questions missing from the FAQ — we review them and try to ship them in future updates.',
     'contact.message': 'Message',
     'contact.optFeedback': 'Platform feedback',
+    'contact.optFeature': 'Feature request',
     'contact.optDoubt': 'Question about the process',
+    'contact.optQuestion': 'Question not covered in the FAQ',
     'contact.optCollab': 'Collaboration / partnership',
     'contact.optOther': 'Other',
     'contact.send': 'Send message',
@@ -677,6 +687,42 @@ const LEARN_CARDS = [
     full: {
       pt: '<h3>IS — Imposto de Selo</h3><p>O Imposto de Selo aplica-se em dois momentos:</p><ul><li><strong>Na compra:</strong> 0.8% sobre o valor da escritura</li><li><strong>No crédito:</strong> 0.6% sobre o montante financiado (para créditos com prazo ≥ 5 anos)</li></ul><p>É pago no momento da escritura, juntamente com o IMT.</p><div class="tip-box">💡 Num imóvel de €200.000 financiado a 80%, pagas €1.600 (compra) + €960 (crédito) = €2.560 em IS.</div>',
       en: '<h3>IS — Stamp Duty</h3><p>Stamp Duty applies at two moments:</p><ul><li><strong>On purchase:</strong> 0.8% on the deed value</li><li><strong>On the loan:</strong> 0.6% on the financed amount (for loans with term ≥ 5 years)</li></ul><p>It is paid at the time of the deed, along with IMT.</p><div class="tip-box">💡 On a €200,000 property financed at 80%, you pay €1,600 (purchase) + €960 (loan) = €2,560 in IS.</div>'
+    }
+  },
+  {
+    id: 'rate-fixed', icon: '🧊', cat: 'tax',
+    title: { pt: 'Taxa fixa', en: 'Fixed rate' },
+    desc: { pt: 'Prestação igual todo o prazo. Protege de subidas, paga-se pelo seguro.', en: 'Same payment for the whole term. Protection from hikes, you pay for the safety.' },
+    full: {
+      pt: '<h3>Taxa fixa</h3><p>A prestação fica igual durante todo o contrato. Pagas um "prémio" de estabilidade: a taxa costuma ser mais alta no início do que numa variável.</p><ul><li>Boa se queres previsibilidade total</li><li>Menos risco com subidas da Euribor</li><li>Podes perder ganhos se as taxas baixarem</li></ul><div class="tip-box">💡 Exemplo: Em €200.000 a 30 anos, 3.9% fixa ≈ €944/mês para sempre. Se a Euribor subisse, continuas a pagar €944.</div>',
+      en: '<h3>Fixed rate</h3><p>Your monthly payment stays the same for the whole term. You pay a "stability premium": the starting rate is usually higher than a variable.</p><ul><li>Great for full predictability</li><li>Low risk if Euribor goes up</li><li>You miss savings if rates fall</li></ul><div class="tip-box">💡 Example: On €200,000 over 30 years at 3.9% fixed, payment ≈ €944/month forever. If rates rise, you still pay €944.</div>'
+    }
+  },
+  {
+    id: 'rate-variable', icon: '🌊', cat: 'tax',
+    title: { pt: 'Taxa variável', en: 'Variable rate' },
+    desc: { pt: 'Prestação sobe ou desce com a Euribor. Começa mais baixa, traz risco.', en: 'Payment moves with Euribor. Starts lower, carries risk.' },
+    full: {
+      pt: '<h3>Taxa variável</h3><p>A prestação é revista (3, 6 ou 12 meses) conforme a Euribor. Se descer, pagas menos; se subir, pagas mais.</p><ul><li>Entrada de prestação normalmente mais baixa</li><li>Risco de aumento de custo com subidas da Euribor</li><li>Convém manter folga no orçamento</li></ul><div class="tip-box">💡 Exemplo: Euribor 6M 3.0% + spread 1.0% → taxa 4.0% agora. Se a Euribor subir para 4.5%, a tua taxa passa a 5.5% na próxima revisão.</div>',
+      en: '<h3>Variable rate</h3><p>Your payment is reviewed (every 3, 6 or 12 months) based on Euribor. If it drops you pay less; if it rises you pay more.</p><ul><li>Usually the lowest initial payment</li><li>Risk of higher cost if Euribor rises</li><li>Keep a buffer in your budget</li></ul><div class="tip-box">💡 Example: Euribor 6M 3.0% + 1.0% spread → 4.0% today. If Euribor rises to 4.5%, your rate becomes 5.5% at the next review.</div>'
+    }
+  },
+  {
+    id: 'rate-hybrid', icon: '⚖️', cat: 'tax',
+    title: { pt: 'Taxa mista (fixa + variável)', en: 'Hybrid rate (fixed + variable)' },
+    desc: { pt: 'Fixa nos primeiros anos, depois passa a variável. Meio-termo entre segurança e custo.', en: 'Fixed for the first years, then variable. Middle ground between safety and cost.' },
+    full: {
+      pt: '<h3>Taxa mista</h3><p>Combina um período inicial de estabilidade com um período variável depois:</p><ul><li>Período fixo (ex.: 5 ou 10 anos) com prestação estável</li><li>Depois passa a Euribor + spread (variável)</li><li>Costuma ser mais barata que fixa longa e mais cara que variável pura</li></ul><div class="tip-box">💡 Exemplo: 5 anos a 3.5% fixa → depois Euribor + 1%. Se a Euribor estiver a 3%, a taxa passa a ~4% após o 5.º ano.</div>',
+      en: '<h3>Hybrid rate</h3><p>Starts fixed, then switches to variable:</p><ul><li>Fixed period (e.g., 5 or 10 years) with stable payment</li><li>Then Euribor + spread (variable)</li><li>Usually cheaper than long fixed, pricier than pure variable</li></ul><div class="tip-box">💡 Example: 5 years at 3.5% fixed → then Euribor + 1%. If Euribor is 3%, the rate becomes ~4% after year 5.</div>'
+    }
+  },
+  {
+    id: 'imi', icon: '🏠', cat: 'tax',
+    title: { pt: 'IMI — Imposto Municipal sobre Imóveis', en: 'IMI — Municipal Property Tax' },
+    desc: { pt: 'Imposto anual sobre o valor patrimonial (normalmente 0,3%–0,45%).', en: 'Yearly tax on the property value (typically 0.3%–0.45%).' },
+    full: {
+      pt: '<h3>IMI — Imposto Municipal sobre Imóveis</h3><p>Imposto anual que financia serviços do município. Depende de:</p><ul><li><strong>Valor Patrimonial Tributário (VPT)</strong> do imóvel</li><li><strong>Taxa definida pela câmara</strong> (entre 0,3% e 0,45% para urbanos)</li><li><strong>Fator familiar</strong> que pode reduzir o valor se tens dependentes</li></ul><p>O pagamento é feito 1x, 2x ou 3x por ano (abril, julho, novembro) conforme o montante.</p><div class="tip-box">💡 Exemplo: VPT de €180.000 com taxa de 0,35% → IMI anual de €630 (podes pagar em 2 prestações de €315).</div><p><strong>Isenções:</strong> primeira habitação própria e permanente com VPT até cerca de €125.000 pode ter isenção de 3 anos (valores variam por legislação). Confirma sempre os limites atuais.</p>',
+      en: '<h3>IMI — Municipal Property Tax</h3><p>Yearly tax that funds local services. It depends on:</p><ul><li><strong>Tax patrimonial value (VPT)</strong> of the property</li><li><strong>Rate set by the municipality</strong> (between 0.3% and 0.45% for urban properties)</li><li><strong>Family factor</strong> that can reduce the amount if you have dependents</li></ul><p>It is paid once, twice or three times a year (April, July, November) depending on the amount.</p><div class="tip-box">💡 Example: VPT €180,000 with a 0.35% rate → yearly IMI of €630 (you can pay in two instalments of €315).</div><p><strong>Exemptions:</strong> primary residences with VPT up to around €125,000 may be exempt for 3 years (values change with legislation). Always check current limits.</p>'
     }
   },
   {
@@ -781,11 +827,10 @@ Object.assign(T.pt, {
   'sim.tab4': 'Custos totais',
   'housing.tag': 'Casas em Portugal',
   'housing.title': 'Anúncios reais de portais fiáveis',
-  'housing.subtitle': 'Liga-te a portais portugueses (Imovirtual, Idealista, Propertium) via scraping com proxy CORS, com fallback seguro.',
+  'housing.subtitle': 'Liga-te a portais portugueses com extração controlada via proxy, sempre com fallback seguro.',
   'housing.source': 'Fonte',
   'housing.source.all': 'Todos os portais',
   'housing.source.imovirtual': 'Imovirtual',
-  'housing.source.idealista': 'Idealista',
   'housing.source.propertium': 'Propertium',
   'housing.location': 'Localização',
   'housing.locationPlaceholder': 'Lisboa, Porto, Braga...',
@@ -812,7 +857,7 @@ Object.assign(T.pt, {
   'housing.loading': 'A carregar anúncios em tempo real...',
   'housing.error': 'Não foi possível obter dados ao vivo agora. Tenta novamente em alguns segundos.',
   'housing.cacheHit': 'Resultados em cache carregados instantaneamente.',
-  'housing.bootstrapLive': 'A mostrar anuncios aleatorios ao vivo de Imovirtual e Idealista.',
+  'housing.bootstrapLive': 'A mostrar anúncios aleatórios ao vivo de Imovirtual e Propertium.',
   'housing.sourceEmpty': 'Sem anúncios na fonte selecionada para esta pesquisa.',
   'housing.sourceUnavailable': 'A fonte selecionada está indisponível agora. Tenta anúncios semelhantes ou todos os portais.',
   'housing.empty': 'Nenhum anúncio encontrado para esta pesquisa.',
@@ -879,11 +924,10 @@ Object.assign(T.en, {
   'sim.tab4': 'Total costs',
   'housing.tag': 'Homes in Portugal',
   'housing.title': 'Live listings from trusted portals',
-    'housing.subtitle': 'Connect to Portuguese portals (Imovirtual, Idealista, Propertium) via proxy scraping with a safe fallback.',
+    'housing.subtitle': 'Connect to Portuguese portals with controlled proxy-based extraction, always with a safe fallback.',
     'housing.source': 'Source',
     'housing.source.all': 'All portals',
     'housing.source.imovirtual': 'Imovirtual',
-    'housing.source.idealista': 'Idealista',
     'housing.source.propertium': 'Propertium',
   'housing.location': 'Location',
   'housing.locationPlaceholder': 'Lisbon, Porto, Braga...',
@@ -910,7 +954,7 @@ Object.assign(T.en, {
   'housing.loading': 'Loading live listings...',
   'housing.error': 'Could not fetch live data right now. Please try again in a few seconds.',
   'housing.cacheHit': 'Cached results loaded instantly.',
-  'housing.bootstrapLive': 'Showing random live listings from Imovirtual and Idealista.',
+  'housing.bootstrapLive': 'Showing random live listings from Imovirtual and Propertium.',
   'housing.sourceEmpty': 'No listings found in the selected source for this search.',
   'housing.sourceUnavailable': 'The selected source is unavailable right now. Try similar listings or all portals.',
   'housing.empty': 'No listings found for this search.',

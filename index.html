@@ -57,7 +57,7 @@
           <div class="chatbot-name" data-translate="chatbot.name">My Home Assistant</div>
           <div class="chatbot-status-row">
             <span class="chatbot-dot"></span>
-            <span class="chatbot-status">Groq · Responde em segundos</span>
+            <span class="chatbot-status">Online · Responde em segundos</span>
           </div>
         </div>
         <button class="chatbot-close-btn" id="chatbot-close" aria-label="Fechar chat">&#10005;</button>
@@ -76,7 +76,7 @@
           <div class="chatbot-toolbar">
             <div class="chatbot-modes" id="chatbot-modes" role="group" aria-label="Modo de resposta">
               <button class="chatbot-mode-btn active" data-mode="quick">Curto</button>
-              <button class="chatbot-mode-btn" data-mode="thinking">Passo a passo</button>
+              <button class="chatbot-mode-btn" data-mode="thinking">Thinking</button>
               <button class="chatbot-mode-btn" data-mode="detailed">Detalhado</button>
             </div>
             <label class="chatbot-toggle">
@@ -111,7 +111,7 @@
       </div>
       <div class="chatbot-foot">
         <div class="chatbot-foot-left" id="chatbot-foot-status">Pronto</div>
-        <div class="chatbot-foot-right" id="chatbot-foot-meta">Groq · modo curto</div>
+        <div class="chatbot-foot-right" id="chatbot-foot-meta">Assistente · modo curto</div>
       </div>
     </div>
     <button class="chatbot-fab" id="chatbot-fab" aria-label="Abrir assistente">
@@ -418,8 +418,8 @@
           decoding="async"
         />
         <div class="insight-image-copy">
-          <h4>Dados reais, decisões melhores</h4>
-          <p>Esta secção cruza perceções reais de jovens em Portugal com visualizações simples para apoiar decisões com mais clareza.</p>
+          <h4 data-translate="dados.realTitle">Dados reais, decisões melhores</h4>
+          <p data-translate="dados.realSubtitle">Esta secção cruza perceções reais de jovens em Portugal com visualizações simples para apoiar decisões com mais clareza.</p>
         </div>
       </div>
     </div>
@@ -489,7 +489,7 @@
       <div class="section-header center reveal">
         <span class="section-tag" data-translate="housing.tag">Casas em Portugal</span>
         <h2 class="section-title" data-translate="housing.title">Anúncios reais de portais fiáveis</h2>
-        <p class="section-subtitle" data-translate="housing.subtitle">Liga-te a portais portugueses (Imovirtual, Idealista, Propertium) via scraping com proxy CORS, sempre com fallback seguro.</p>
+        <p class="section-subtitle" data-translate="housing.subtitle">Liga-te a portais portugueses com extração controlada via proxy, sempre com fallback seguro.</p>
       </div>
 
       <form class="listings-controls glass reveal" id="housing-form">
@@ -499,7 +499,6 @@
             <select id="housing-source" class="text-input select-input">
               <option value="all" data-translate="housing.source.all">Todos os portais</option>
               <option value="imovirtual" data-translate="housing.source.imovirtual">Imovirtual</option>
-              <option value="idealista" data-translate="housing.source.idealista">Idealista</option>
               <option value="propertium" data-translate="housing.source.propertium">Propertium</option>
             </select>
           </div>
@@ -1085,10 +1084,15 @@
               <label class="form-label" for="c-subject" data-translate="contact.subject">Assunto</label>
               <select id="c-subject" class="text-input select-input">
                 <option value="feedback" data-translate="contact.optFeedback">Feedback sobre a plataforma</option>
+                  <option value="feature" data-translate="contact.optFeature">Pedido de funcionalidade</option>
                 <option value="doubt" data-translate="contact.optDoubt">Dúvida sobre o processo</option>
+                  <option value="question" data-translate="contact.optQuestion">Pergunta que falta na FAQ</option>
                 <option value="collab" data-translate="contact.optCollab">Colaboração / parceria</option>
                 <option value="other" data-translate="contact.optOther">Outro</option>
               </select>
+            </div>
+            <div class="form-hint" data-translate="contact.extraPrompt">
+              Sugere novas funcionalidades ou perguntas que não estão na FAQ — avaliamos e tentamos integrar nas próximas versões.
             </div>
             <div class="form-group">
               <label class="form-label" for="c-message" data-translate="contact.message">Mensagem</label>

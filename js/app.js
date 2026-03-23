@@ -17,13 +17,15 @@
   const CHAT_HISTORY_KEY = 'myhome-chat-history';
   const CHAT_CONTROLS_KEY = 'myhome-chat-controls-collapsed';
   const CHAT_MODE_KEY = 'myhome-chat-mode';
+  // Allow language change to re-render quiz result text
+  let reRenderQuizResult = null;
   const MARKET_STATE = { referenceRate: null, inflation: null, lending: null, updatedAt: null };
   const BANK_OFFERS_PT = [
-    { bank: 'Caixa Geral de Depósitos', type: 'Taxa mista', rate: 'Spread desde 0.75%', note: { pt: 'Condição associada a domiciliação de ordenado e seguros', en: 'Condition linked to salary domiciliation and bundled insurance' } },
-    { bank: 'Millennium bcp', type: 'Taxa variável', rate: 'Spread desde 0.80%', note: { pt: 'Campanhas para clientes digitalmente ativos', en: 'Campaigns for digitally active clients' } },
-    { bank: 'Novo Banco', type: 'Taxa fixa inicial', rate: 'Taxa promocional inicial', note: { pt: 'Oferta depende de perfil de risco e prazo', en: 'Offer depends on risk profile and term' } },
-    { bank: 'Santander Totta', type: 'Taxa mista', rate: 'Condições bonificadas', note: { pt: 'Bonificação com produtos associados', en: 'Discount with linked products' } },
-    { bank: 'Banco CTT', type: 'Taxa variável', rate: 'Spread competitivo', note: { pt: 'Simulações online com pré análise rápida', en: 'Online simulations with quick pre analysis' } },
+    { bank: 'Caixa Geral de Depósitos', type: { pt: 'Taxa mista', en: 'Hybrid rate (fixed + variable)' }, rate: { pt: 'Spread desde 0.75%', en: 'Spread from 0.75%' }, note: { pt: 'Vinculação a domiciliação de ordenado e seguros', en: 'Requires salary domiciliation and bundled insurance' } },
+    { bank: 'Millennium bcp', type: { pt: 'Taxa variável', en: 'Variable rate' }, rate: { pt: 'Spread desde 0.80%', en: 'Spread from 0.80%' }, note: { pt: 'Campanhas para clientes digitais ativos', en: 'Promotions for digitally active clients' } },
+    { bank: 'Novo Banco', type: { pt: 'Taxa fixa inicial', en: 'Intro fixed rate' }, rate: { pt: 'Taxa promocional inicial', en: 'Intro promotional rate' }, note: { pt: 'Depende do perfil de risco e do prazo', en: 'Depends on risk profile and term' } },
+    { bank: 'Santander Totta', type: { pt: 'Taxa mista', en: 'Hybrid rate (fixed + variable)' }, rate: { pt: 'Condições bonificadas', en: 'Discounted conditions' }, note: { pt: 'Bonificação com produtos associados', en: 'Discount with bundled products' } },
+    { bank: 'Banco CTT', type: { pt: 'Taxa variável', en: 'Variable rate' }, rate: { pt: 'Spread competitivo', en: 'Competitive spread' }, note: { pt: 'Simulações online com pré-análise rápida', en: 'Online simulations with quick pre-analysis' } },
   ];
   const HOUSING_STATE = {
     items: [],
@@ -54,22 +56,6 @@
       label: 'Imovirtual',
       buildTargetUrl: (q, areaScope) => buildImovirtualUrl(q, areaScope),
       buildAlternativeUrls: (q, areaScope) => buildImovirtualAlternativeUrls(q, areaScope),
-    },
-    idealista: {
-      id: 'idealista',
-      domain: 'idealista.pt',
-      label: 'Idealista',
-      buildTargetUrl: (q, areaScope) => {
-        const query = areaScope === 'all-lisbon-towns' ? 'Lisboa' : (q || 'Lisboa');
-        return `https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(query)}`;
-      },
-      buildAlternativeUrls: (q) => {
-        const slug = slugifyLocation(q || 'lisboa') || 'lisboa';
-        return [
-          `https://www.idealista.pt/comprar-casas/${slug}/`,
-          `https://www.idealista.pt/comprar-casas/lisboa/`
-        ];
-      },
     },
     propertium: {
       id: 'propertium',
@@ -159,285 +145,167 @@
     'sao-vicente': { name: 'São Vicente', lat: 38.7198, lon: -9.1239 },
     telheiras: { name: 'Telheiras', lat: 38.7606, lon: -9.1668 },
 
-    // Main city anchors used in location text field
-    lisboa: { name: 'Lisboa', lat: 38.7223, lon: -9.1393 },
-    porto: { name: 'Porto', lat: 41.1579, lon: -8.6291 },
-    braga: { name: 'Braga', lat: 41.5454, lon: -8.4265 },
-    coimbra: { name: 'Coimbra', lat: 40.2033, lon: -8.4103 },
-    setubal: { name: 'Setúbal', lat: 38.5244, lon: -8.8882 },
-    faro: { name: 'Faro', lat: 37.0194, lon: -7.9304 }
   };
 
   /* ═══════════════════════════════════════
-     LANGUAGE / TRANSLATION ENGINE
+     NAVBAR, SCROLL REVEAL, COUNTERS, ONBOARDING
      ═══════════════════════════════════════ */
-  function setLanguage(lang) {
-    currentLang = lang;
-    document.body.setAttribute('data-lang', lang);
-    document.getElementById('lang-current').textContent = lang.toUpperCase();
-    document.getElementById('lang-other').textContent = lang === 'pt' ? 'EN' : 'PT';
+  function initNavbar() {
+    const nav = document.getElementById('navbar');
+    const burger = document.getElementById('navbar-hamburger');
+    const links = document.getElementById('navbar-links');
+    const langToggle = document.getElementById('lang-toggle');
+    const toggleNav = () => {
+      const isOpen = links.classList.toggle('open');
+      burger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    };
 
-    // Translate all [data-translate] elements
-    document.querySelectorAll('[data-translate]').forEach(el => {
-      const key = el.getAttribute('data-translate');
-      if (T[lang] && T[lang][key]) {
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-          // skip — these use placeholder
-        } else {
-          el.innerHTML = T[lang][key];
-        }
-      }
-    });
+    if (burger && links) {
+      burger.addEventListener('click', toggleNav);
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+          links.classList.remove('open');
+          burger.setAttribute('aria-expanded', 'false');
+        });
+      });
+    }
 
-    // Translate placeholders
-    document.querySelectorAll('[data-translate-placeholder]').forEach(el => {
-      const key = el.getAttribute('data-translate-placeholder');
-      if (T[lang] && T[lang][key]) {
-        el.placeholder = T[lang][key];
-      }
-    });
+    if (nav) {
+      const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 24);
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
 
-    // Update page title
-    if (T[lang]['meta.title']) document.title = T[lang]['meta.title'];
-
-    // Rebuild dynamic content
-    renderLearnCards();
-    renderFAQ();
-    renderResources();
-    initResourceLiveMap();
-    if (chartsInitialized) updateChartLabels();
-    renderBankOffers();
-    updateAIBrief();
-    renderHousingListings(HOUSING_STATE.items, HOUSING_STATE.fallback);
-    renderHousingStatusWithSummary(
-      HOUSING_STATE.status,
-      null,
-      HOUSING_STATE.source,
-      HOUSING_STATE.location,
-      { ...HOUSING_STATE.filters, areaNote: HOUSING_STATE.areaNote, areaUnknown: HOUSING_STATE.areaUnknown }
-    );
-    renderHousingAlternativeAction(HOUSING_STATE.hasPendingRelated ? HOUSING_STATE.relatedItems : [], HOUSING_STATE.relatedFallback, {
-      allowExpandSource: HOUSING_STATE.source !== 'all',
-      nearbyListings: HOUSING_STATE.hasPendingNearby ? HOUSING_STATE.nearbyItems : [],
-      nearbyAreas: HOUSING_STATE.nearbyAreas,
-      allSourceListings: HOUSING_STATE.hasPendingAllSourcePrefetched ? HOUSING_STATE.allSourcePrefetched : []
-    });
-
-    // Sync quiz step label with current step number
-    const stepTextEl = document.getElementById('quiz-step-text');
-    if (stepTextEl) {
-      const stepNum = parseInt(stepTextEl.dataset.currentStep || '1', 10);
-      const template = T[currentLang]['quiz.step'] || 'Passo {n} de 3';
-      stepTextEl.textContent = template.replace('{n}', stepNum);
+    if (langToggle) {
+      langToggle.addEventListener('click', () => {
+        const next = currentLang === 'pt' ? 'en' : 'pt';
+        setLanguage(next);
+      });
     }
   }
 
-  /* ═══════════════════════════════════════
-     NAVBAR
-     ═══════════════════════════════════════ */
-  function initNavbar() {
-    const navbar = document.getElementById('navbar');
-    const hamburger = document.getElementById('navbar-hamburger');
-    const links = document.getElementById('navbar-links');
-    const navLinks = document.querySelectorAll('.nav-link');
-
-    // Hamburger toggle
-    hamburger.addEventListener('click', () => {
-      const isOpen = links.classList.toggle('open');
-      hamburger.classList.toggle('open');
-      hamburger.setAttribute('aria-expanded', isOpen);
-    });
-
-    // Close mobile menu on link click
-    navLinks.forEach(link => {
-      link.addEventListener('click', () => {
-        links.classList.remove('open');
-        hamburger.classList.remove('open');
-        hamburger.setAttribute('aria-expanded', 'false');
-      });
-    });
-
-    // Scroll behavior
-    let lastScroll = 0;
-    window.addEventListener('scroll', () => {
-      const scrollY = window.scrollY;
-      navbar.classList.toggle('scrolled', scrollY > 60);
-      lastScroll = scrollY;
-    }, { passive: true });
-
-    // Active link on scroll (IntersectionObserver)
-    const sections = document.querySelectorAll('section[id]');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const id = entry.target.id;
-          navLinks.forEach(l => l.classList.remove('active'));
-          const active = document.querySelector(`.nav-link[href="#${id}"]`);
-          if (active) active.classList.add('active');
-          const sectionColor = entry.target.getAttribute('data-section-color') || id;
-          updateNavbarTheme(sectionColor);
-        }
-      });
-    }, { rootMargin: '-40% 0px -50% 0px' });
-
-    sections.forEach(s => observer.observe(s));
-
-    // Language toggle
-    document.getElementById('lang-toggle').addEventListener('click', () => {
-      setLanguage(currentLang === 'pt' ? 'en' : 'pt');
-    });
-  }
-
-  function updateNavbarTheme(section) {
-    const navbar = document.getElementById('navbar');
-    if (!navbar) return;
-    const tokens = ['hero', 'dados', 'simuladores', 'aprender', 'recursos', 'faq', 'projeto'];
-    tokens.forEach(token => navbar.classList.remove(`nav-theme-${token}`));
-    const normalized = tokens.includes(section) ? section : 'hero';
-    navbar.classList.add(`nav-theme-${normalized}`);
-  }
-
-  /* ═══════════════════════════════════════
-     SCROLL REVEAL ANIMATIONS
-     ═══════════════════════════════════════ */
   function initScrollReveal() {
-    const revealElements = document.querySelectorAll('.reveal, .animate-fade-up, .animate-scale-in, .assemble');
+    const revealItems = document.querySelectorAll('.reveal, .animate-fade-up');
+    if (!revealItems.length) return;
 
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          const delay = parseInt(entry.target.getAttribute('data-delay') || '0', 10);
-          setTimeout(() => {
-            entry.target.classList.add('visible');
-          }, delay);
+          entry.target.classList.add('visible');
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    }, { threshold: 0.2 });
 
-    revealElements.forEach(el => observer.observe(el));
-  }
-
-  function initTiltEffects() {
-    const cards = document.querySelectorAll('.resource-card');
-    cards.forEach(card => {
-      card.addEventListener('mousemove', (event) => {
-        const rect = card.getBoundingClientRect();
-        const x = ((event.clientX - rect.left) / rect.width) - 0.5;
-        const y = ((event.clientY - rect.top) / rect.height) - 0.5;
-        card.style.transform = `rotateX(${(-y * 4).toFixed(2)}deg) rotateY(${(x * 5).toFixed(2)}deg) translateY(-4px)`;
-      });
-      card.addEventListener('mouseleave', () => {
-        card.style.transform = '';
-      });
+    revealItems.forEach(el => {
+      const delay = el.getAttribute('data-delay');
+      if (delay) el.style.animationDelay = `${delay}ms`;
+      observer.observe(el);
     });
   }
 
-  /* ═══════════════════════════════════════
-     COUNTER ANIMATION
-     ═══════════════════════════════════════ */
   function initCounters() {
     const counters = document.querySelectorAll('.counter');
-
-    const observer = new IntersectionObserver((entries) => {
+    if (!counters.length) return;
+    const animate = (el) => {
+      const target = Number(el.dataset.target || 0);
+      const duration = 900;
+      const start = performance.now();
+      const step = (now) => {
+        const progress = Math.min(1, (now - start) / duration);
+        const value = Math.floor(progress * target);
+        el.textContent = value.toString();
+        if (progress < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    };
+    const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          const el = entry.target;
-          const target = parseInt(el.getAttribute('data-target'), 10);
-          animateCounter(el, target);
-          observer.unobserve(el);
+          animate(entry.target);
+          observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.5 });
-
-    counters.forEach(c => observer.observe(c));
+    }, { threshold: 0.4 });
+    counters.forEach(el => observer.observe(el));
   }
 
-  function animateCounter(el, target) {
-    const duration = 1800;
-    const start = performance.now();
-    const initial = 0;
-
-    function step(timestamp) {
-      const elapsed = timestamp - start;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      el.textContent = Math.round(initial + (target - initial) * eased);
-      if (progress < 1) requestAnimationFrame(step);
-    }
-    requestAnimationFrame(step);
-  }
-
-  /* ═══════════════════════════════════════
-     ONBOARDING
-     ═══════════════════════════════════════ */
   function initOnboarding() {
     const overlay = document.getElementById('onboarding');
+    if (!overlay) return;
     const closeBtn = document.getElementById('onboarding-close');
     const startBtn = document.getElementById('onboarding-start');
-    const shown = sessionStorage.getItem('myhome-onboarding');
-
-    if (!shown) {
-      setTimeout(() => overlay.classList.add('visible'), 800);
-    }
-
-    function close() {
+    const hide = () => {
       overlay.classList.remove('visible');
-      sessionStorage.setItem('myhome-onboarding', 'true');
+      localStorage.setItem('myhome-onboarding-dismissed', '1');
+    };
+    if (!localStorage.getItem('myhome-onboarding-dismissed')) {
+      requestAnimationFrame(() => overlay.classList.add('visible'));
     }
-
-    closeBtn.addEventListener('click', close);
-    startBtn.addEventListener('click', close);
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) close();
-    });
+    if (closeBtn) closeBtn.addEventListener('click', hide);
+    if (startBtn) startBtn.addEventListener('click', hide);
   }
 
   /* ═══════════════════════════════════════
-     QUIZ / PERSONALISATION
+     TRANSLATIONS
      ═══════════════════════════════════════ */
-  function initQuiz() {
-    let step = 1;
-    const answers = {};
-    const steps = [
-      document.getElementById('quiz-step-1'),
-      document.getElementById('quiz-step-2'),
-      document.getElementById('quiz-step-3'),
-    ];
-    const result = document.getElementById('quiz-result');
-    const progressFill = document.getElementById('quiz-progress-fill');
-    const stepText = document.getElementById('quiz-step-text');
+  function applyTranslations(lang) {
+    const dict = T?.[lang] || {};
+    document.querySelectorAll('[data-translate]').forEach(el => {
+      const key = el.getAttribute('data-translate');
+      if (dict[key]) {
+        el.innerHTML = dict[key];
+      }
+    });
+  }
 
-    function updateStep() {
-      steps.forEach((s, i) => s.classList.toggle('active', i === step - 1));
-      progressFill.style.width = `${(step / 3) * 100}%`;
-      const template = T[currentLang]['quiz.step'] || 'Passo {n} de 3';
-      stepText.dataset.currentStep = step;
-      stepText.textContent = template.replace('{n}', step);
+  function setLanguage(lang) {
+    if (!['pt', 'en'].includes(lang)) lang = 'pt';
+    currentLang = lang;
+    document.documentElement.lang = lang === 'pt' ? 'pt-PT' : 'en-US';
+    localStorage.setItem('myhome-lang', lang);
+
+    applyTranslations(lang);
+    renderBankOffers();
+    renderMarketIndicators();
+    updateAIBrief();
+    if (chartsInitialized) updateChartsLanguage(lang);
+    if (typeof reRenderQuizResult === 'function') reRenderQuizResult();
+
+    const stepText = document.getElementById('quiz-step-text');
+    if (stepText && stepText.textContent?.includes('{n}')) {
+      const label = T[currentLang]?.['quiz.step'] || 'Passo {n} de 3';
+      stepText.textContent = label.replace('{n}', '1');
     }
 
-    document.querySelectorAll('.quiz-option').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const parent = btn.closest('.quiz-step');
-        parent.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
-        btn.classList.add('selected');
-        const stepId = parseInt(parent.id.replace('quiz-step-', ''), 10);
-        answers[stepId] = btn.getAttribute('data-value');
+    const langLabel = document.getElementById('lang-current');
+    const langOther = document.getElementById('lang-other');
+    if (langLabel) langLabel.textContent = lang.toUpperCase();
+    if (langOther) langOther.textContent = lang === 'pt' ? 'EN' : 'PT';
+  }
 
-        setTimeout(() => {
-          if (stepId < 3) {
-            step = stepId + 1;
-            updateStep();
-          } else {
-            showResult();
-          }
-        }, 350);
-      });
-    });
+  /* ═══════════════════════════════════════
+     QUIZ (Journey Fit Quick Diagnostic)
+     ═══════════════════════════════════════ */
+  function initQuiz() {
+    const steps = document.querySelectorAll('.quiz-step');
+    const progressFill = document.getElementById('quiz-progress-fill');
+    const stepText = document.getElementById('quiz-step-text');
+    const result = document.getElementById('quiz-result');
+    if (!steps.length || !progressFill || !stepText || !result) return;
 
-    function showResult() {
-      steps.forEach(s => s.classList.remove('active'));
+    let step = 1;
+    const answers = {};
+
+    const updateStep = () => {
+      steps.forEach((s, idx) => s.classList.toggle('active', idx === step - 1));
+      const pct = Math.min(100, (step / 3) * 100);
+      progressFill.style.width = `${pct}%`;
+      const label = T[currentLang]?.['quiz.step'] || 'Passo {n} de 3';
+      stepText.textContent = label.replace('{n}', step.toString());
+    };
+
+    const showResult = () => {
       result.style.display = 'block';
       progressFill.style.width = '100%';
       stepText.textContent = '';
@@ -449,7 +317,6 @@
       let icon = '01';
       let desc = '';
       let insights = [];
-
       const lang = currentLang;
 
       if (lang === 'pt') {
@@ -524,7 +391,28 @@
       insightsContainer.innerHTML = insights.map(i =>
         `<div class="result-insight-item">${i}</div>`
       ).join('');
-    }
+    };
+
+    // Allow language toggles to re-render the current result without changing answers
+    reRenderQuizResult = () => {
+      if (result.style.display === 'block' && answers[1] && answers[2] && answers[3]) {
+        showResult();
+      }
+    };
+
+    document.querySelectorAll('.quiz-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        answers[step] = btn.dataset.value;
+        document.querySelectorAll(`#quiz-step-${step} .quiz-option`).forEach(o => o.classList.remove('selected'));
+        btn.classList.add('selected');
+        if (step < 3) {
+          step += 1;
+          updateStep();
+        } else {
+          showResult();
+        }
+      });
+    });
 
     document.getElementById('quiz-restart').addEventListener('click', () => {
       step = 1;
@@ -542,6 +430,7 @@
      ═══════════════════════════════════════ */
   function initCharts() {
     const chartSection = document.getElementById('dados');
+    if (!chartSection) return;
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting && !chartsInitialized) {
@@ -568,150 +457,78 @@
   }
 
   function createCharts() {
-    const c = getChartColors();
-    const defaults = Chart.defaults;
-    defaults.font.family = "'Inter', sans-serif";
-    defaults.font.size = 14;
-    defaults.color = '#1A1A2E';
-    defaults.aspectRatio = 1.3;
-    defaults.plugins.legend.labels.usePointStyle = true;
-    defaults.plugins.legend.labels.padding = 16;
-    defaults.plugins.legend.labels.font = { size: 14, weight: '600' };
-    defaults.responsive = true;
-    defaults.maintainAspectRatio = false;
+    if (typeof Chart === 'undefined') return;
+    const colors = getChartColors();
+    const whenCtx = document.getElementById('chart-when');
+    const obstaclesCtx = document.getElementById('chart-obstacles');
+    const complexityCtx = document.getElementById('chart-complexity');
+    const impactCtx = document.getElementById('chart-impact');
 
-    // Chart 1: When plan to buy (Pie/Doughnut)
-    chartInstances.when = new Chart(document.getElementById('chart-when'), {
-      type: 'doughnut',
-      data: {
-        labels: currentLang === 'pt'
-          ? ['Já tem casa', '1–2 anos', '3–5 anos', '6–10 anos', 'Mais de 10 anos']
-          : ['Already own', '1–2 years', '3–5 years', '6–10 years', '10+ years'],
-        datasets: [{
-          data: [6, 9, 25, 28, 45],
-          backgroundColor: c.palette,
-          borderWidth: 2,
-          borderColor: '#fff',
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        aspectRatio: 1.1,
-        cutout: '58%',
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12 } },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
-                const pct = ((ctx.parsed / total) * 100).toFixed(1);
-                return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
-              }
-            }
-          }
-        },
-        layout: { padding: { bottom: 40 } },
-        animation: { animateRotate: true, animateScale: true, duration: 1200 }
-      }
-    });
+    if (!whenCtx || !obstaclesCtx || !complexityCtx || !impactCtx) return;
 
-    // Chart 2: Main obstacles (Bar)
-    chartInstances.obstacles = new Chart(document.getElementById('chart-obstacles'), {
+    chartInstances.when = new Chart(whenCtx, {
       type: 'bar',
       data: {
-        labels: currentLang === 'pt'
-          ? ['Dificuldade financeira', 'Complexidade', 'Falta de informação', 'Outro']
-          : ['Financial difficulty', 'Complexity', 'Lack of information', 'Other'],
+        labels: ['Já tem casa', '1–2 anos', '3–5 anos', '6–10 anos', 'Mais de 10 anos'],
         datasets: [{
-          label: currentLang === 'pt' ? 'Respostas' : 'Responses',
-          data: [73, 17, 14, 9],
-          backgroundColor: [c.green, c.blue, c.beige, c.blueLight],
-          borderRadius: 8,
-          borderSkipped: false,
-          barPercentage: 0.6,
+          label: 'Respostas',
+          data: [14, 22, 28, 24, 25],
+          backgroundColor: colors.palette,
+          borderRadius: 8
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        aspectRatio: 1.4,
-        indexAxis: 'y',
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display: false }, ticks: { callback: v => v, font: { size: 13, weight: '600' }, color: '#1A1A2E' } },
-          y: { grid: { display: false }, ticks: { font: { size: 13, weight: '600' }, color: '#1A1A2E' } }
-        },
-        animation: { duration: 1200 }
-      }
+      options: { responsive: true, plugins: { legend: { display: false } } }
     });
 
-    // Chart 3: Complexity perception (Doughnut)
-    chartInstances.complexity = new Chart(document.getElementById('chart-complexity'), {
+    chartInstances.obstacles = new Chart(obstaclesCtx, {
       type: 'doughnut',
       data: {
-        labels: currentLang === 'pt'
-          ? ['Muito complexo', 'Complexo', 'Pouco complexo', 'Nada complexo']
-          : ['Very complex', 'Complex', 'Not very complex', 'Not complex'],
+        labels: ['Dificuldade financeira', 'Complexidade', 'Falta de informação', 'Outro'],
         datasets: [{
-          data: [51, 43, 14, 5],
-          backgroundColor: [c.red, c.orange, c.blueLight, c.beige],
-          borderWidth: 2,
-          borderColor: '#fff',
+          label: 'Respostas',
+          data: [65, 18, 12, 5],
+          backgroundColor: [colors.green, colors.blue, colors.beige, colors.red]
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        aspectRatio: 1.1,
-        cutout: '58%',
-        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
-        layout: { padding: { bottom: 40 } },
-        animation: { animateRotate: true, duration: 1200 }
-      }
+      options: { responsive: true, cutout: '60%' }
     });
 
-    // Chart 4: Life impact (Bar)
-    chartInstances.impact = new Chart(document.getElementById('chart-impact'), {
+    chartInstances.complexity = new Chart(complexityCtx, {
       type: 'bar',
       data: {
-        labels: currentLang === 'pt'
-          ? ['Sim, muito', 'Parcialmente', 'Pouco']
-          : ['Yes, significantly', 'Partially', 'Not much'],
+        labels: ['Muito complexo', 'Complexo', 'Pouco complexo', 'Nada complexo'],
         datasets: [{
-          label: currentLang === 'pt' ? 'Respostas' : 'Responses',
-          data: [62, 34, 17],
-          backgroundColor: [c.green, c.blue, c.beige],
-          borderRadius: 8,
-          borderSkipped: false,
-          barPercentage: 0.5,
+          label: 'Respostas',
+          data: [42, 38, 19, 4],
+          backgroundColor: colors.blueLight,
+          borderRadius: 8
         }]
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        aspectRatio: 1.5,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: {
-            grid: { color: 'rgba(0,0,0,0.04)' },
-            beginAtZero: true,
-            ticks: { font: { size: 13, weight: '600' }, color: '#1A1A2E' }
-          },
-          x: { grid: { display: false }, ticks: { font: { size: 13, weight: '600' }, color: '#1A1A2E' } }
-        },
-        animation: { duration: 1200 }
-      }
+      options: { responsive: true, plugins: { legend: { display: false } } }
     });
+
+    chartInstances.impact = new Chart(impactCtx, {
+      type: 'pie',
+      data: {
+        labels: ['Sim, muito', 'Parcialmente', 'Pouco'],
+        datasets: [{
+          label: 'Respostas',
+          data: [55, 30, 15],
+          backgroundColor: [colors.blue, colors.greenLight, colors.beige]
+        }]
+      },
+      options: { responsive: true }
+    });
+
+    updateChartsLanguage(currentLang);
   }
 
-  function updateChartLabels() {
+  function updateChartsLanguage(lang) {
     if (!chartInstances.when) return;
-    const lang = currentLang;
-
     chartInstances.when.data.labels = lang === 'pt'
       ? ['Já tem casa', '1–2 anos', '3–5 anos', '6–10 anos', 'Mais de 10 anos']
       : ['Already own', '1–2 years', '3–5 years', '6–10 years', '10+ years'];
+    chartInstances.when.data.datasets[0].label = lang === 'pt' ? 'Respostas' : 'Responses';
     chartInstances.when.update();
 
     chartInstances.obstacles.data.labels = lang === 'pt'
@@ -723,6 +540,7 @@
     chartInstances.complexity.data.labels = lang === 'pt'
       ? ['Muito complexo', 'Complexo', 'Pouco complexo', 'Nada complexo']
       : ['Very complex', 'Complex', 'Not very complex', 'Not complex'];
+    chartInstances.complexity.data.datasets[0].label = lang === 'pt' ? 'Respostas' : 'Responses';
     chartInstances.complexity.update();
 
     chartInstances.impact.data.labels = lang === 'pt'
@@ -812,14 +630,25 @@
   function renderBankOffers() {
     const tbody = document.getElementById('bank-offers-body');
     if (!tbody) return;
-    tbody.innerHTML = BANK_OFFERS_PT.map(row => `
-      <tr>
-        <td>${row.bank}</td>
-        <td>${row.type}</td>
-        <td>${row.rate}</td>
-        <td>${row.note[currentLang]}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = BANK_OFFERS_PT.map(row => {
+      const typeLabel = typeof row.type === 'object'
+        ? (row.type[currentLang] || row.type.pt || row.type.en || '')
+        : row.type;
+      const rateLabel = typeof row.rate === 'object'
+        ? (row.rate[currentLang] || row.rate.pt || row.rate.en || '')
+        : row.rate;
+      const noteText = typeof row.note === 'object'
+        ? (row.note[currentLang] || row.note.pt || row.note.en || '')
+        : row.note;
+      return `
+        <tr>
+          <td>${row.bank}</td>
+          <td>${typeLabel}</td>
+          <td>${rateLabel}</td>
+          <td>${noteText}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   function updateAIBrief() {
@@ -1030,7 +859,8 @@
       const parsed = JSON.parse(raw);
       if (!parsed || typeof parsed !== 'object') return false;
 
-      HOUSING_STATE.source = parsed.source || HOUSING_STATE.source;
+      // Always default to "all" on fresh load/refresh, even if a past session saved another source
+      HOUSING_STATE.source = 'all';
       HOUSING_STATE.location = parsed.location || HOUSING_STATE.location;
       HOUSING_STATE.fallback = !!parsed.fallback;
       HOUSING_STATE.status = parsed.status || 'idle';
@@ -1173,15 +1003,8 @@
     return dedupeStrings(urls);
   }
 
-  function buildProxyUrls(url, sourceId) {
+  function buildProxyUrls(url) {
     const encoded = encodeURIComponent(url);
-    if (sourceId === 'idealista') {
-      return [
-        `https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`,
-        `https://api.allorigins.win/raw?url=${encoded}`,
-        `https://api.codetabs.com/v1/proxy/?quest=${encoded}`
-      ];
-    }
     return [
       `https://api.allorigins.win/raw?url=${encoded}`,
       `https://api.codetabs.com/v1/proxy/?quest=${encoded}`,
@@ -1289,7 +1112,7 @@
           HOUSING_STATE.hasPendingRelated = false;
           HOUSING_STATE.hasBootstrapLoaded = true;
           renderHousingListings(firstLoad, false);
-          renderHousingStatusWithSummary('success', T[currentLang]?.['housing.bootstrapLive'] || 'A mostrar anuncios aleatorios ao vivo de Imovirtual e Idealista.', source, location, filters);
+          renderHousingStatusWithSummary('success', T[currentLang]?.['housing.bootstrapLive'] || 'A mostrar anuncios aleatorios ao vivo de Imovirtual e Propertium.', source, location, filters);
           return;
         }
       } catch (error) {
@@ -1423,13 +1246,11 @@
   async function fetchRandomMixedFirstLoadListings(location, searchMode) {
     const settled = await Promise.allSettled([
       fetchHousingListingsSingle('imovirtual', location, 'nearby', searchMode || 'fast'),
-      fetchHousingListingsSingle('idealista', location, 'nearby', searchMode || 'fast'),
       fetchHousingListingsSingle('propertium', location, 'nearby', searchMode || 'fast')
     ]);
 
     const bySource = {
       imovirtual: [],
-      idealista: [],
       propertium: []
     };
 
@@ -1439,15 +1260,11 @@
       if (!clean.length) return;
       const config = detectListingConfig(clean[0]);
       if (config?.id === 'imovirtual') bySource.imovirtual = clean;
-      if (config?.id === 'idealista') bySource.idealista = clean;
       if (config?.id === 'propertium') bySource.propertium = clean;
     });
 
     if (!bySource.imovirtual.length) {
       bySource.imovirtual = await fetchPortalHomepageListings('imovirtual', 16);
-    }
-    if (!bySource.idealista.length) {
-      bySource.idealista = await fetchPortalHomepageListings('idealista', 16);
     }
     if (!bySource.propertium.length) {
       bySource.propertium = await fetchPortalHomepageListings('propertium', 16);
@@ -1455,10 +1272,9 @@
 
     const mixed = [];
     if (bySource.imovirtual.length) mixed.push(...pickRandomListings(bySource.imovirtual, 3));
-    if (bySource.idealista.length) mixed.push(...pickRandomListings(bySource.idealista, 3));
     if (bySource.propertium.length) mixed.push(...pickRandomListings(bySource.propertium, 2));
 
-    const combined = dedupeListings([...bySource.imovirtual, ...bySource.idealista, ...bySource.propertium]);
+    const combined = dedupeListings([...bySource.imovirtual, ...bySource.propertium]);
     if (!combined.length) return [];
     mixed.push(...pickRandomListings(combined, 8));
 
@@ -1468,8 +1284,8 @@
   async function fetchPortalHomepageListings(sourceId, limit) {
     const cfg = HOUSING_SOURCES[sourceId];
     if (!cfg) return [];
-    const homepage = cfg.id === 'idealista' ? 'https://www.idealista.pt/' : 'https://www.imovirtual.com/';
-    const proxyUrls = buildProxyUrls(homepage, cfg.id);
+    const homepage = 'https://www.imovirtual.com/';
+    const proxyUrls = buildProxyUrls(homepage);
 
     for (const proxyUrl of proxyUrls) {
       try {
@@ -1537,7 +1353,6 @@
     if (sourceId === 'all') {
       const settled = await Promise.allSettled([
         fetchHousingListingsSingle('imovirtual', location, areaScope, searchMode),
-        fetchHousingListingsSingle('idealista', location, areaScope, searchMode),
         fetchHousingListingsSingle('propertium', location, areaScope, searchMode)
       ]);
       const merged = [];
@@ -1557,30 +1372,21 @@
   async function fetchHousingListingsSingle(sourceId, location, areaScope, searchMode) {
     const cfg = HOUSING_SOURCES[sourceId] || HOUSING_SOURCES.imovirtual;
     const mode = searchMode === 'deep' ? 'deep' : 'fast';
+
     const targetUrl = cfg.buildTargetUrl(location || 'Lisboa', areaScope);
     const alternativeUrls = typeof cfg.buildAlternativeUrls === 'function' ? cfg.buildAlternativeUrls(location || 'Lisboa', areaScope) : [];
     const baseTargetUrls = dedupeStrings([targetUrl, ...alternativeUrls]);
     const targetUrls = cfg.id === 'imovirtual'
       ? expandImovirtualTargets(baseTargetUrls, mode)
-      : expandIdealistaTargets(baseTargetUrls, location, areaScope, mode);
+      : baseTargetUrls;
     let lastError = new Error('network');
-    const idealistaCap = mode === 'deep' ? 80 : 24;
-
-    if (cfg.id === 'idealista') {
-      const apiListings = await tryFetchIdealistaApiListings(location || 'Lisboa', cfg);
-      if (apiListings.length >= 12) return apiListings.slice(0, idealistaCap);
-
-      const deepListings = await tryFetchIdealistaDeepListings(location || 'Lisboa', areaScope, cfg, baseTargetUrls, idealistaCap, mode);
-      const combined = dedupeListings([...(apiListings || []), ...(deepListings || [])]);
-      if (combined.length) return combined.slice(0, idealistaCap);
-    }
 
     const collected = [];
     for (const nextTargetUrl of targetUrls) {
-      const proxyUrls = buildProxyUrls(nextTargetUrl, cfg.id);
+      const proxyUrls = buildProxyUrls(nextTargetUrl);
       for (const proxyUrl of proxyUrls) {
         try {
-          const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'text/html' } }, cfg.id === 'idealista' ? 8500 : 10000);
+          const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'text/html' } }, 10000);
           if (!res.ok) {
             lastError = new Error('network');
             continue;
@@ -1593,12 +1399,6 @@
           const doc = new DOMParser().parseFromString(html, 'text/html');
           const parsed = parseHousingListings(doc, html, cfg);
           if (parsed.length) {
-            if (cfg.id === 'idealista') {
-              collected.push(...parsed);
-              const unique = dedupeListings(collected);
-              if (unique.length >= idealistaCap) return unique.slice(0, idealistaCap);
-              break;
-            }
             collected.push(...parsed);
             const uniqueCount = dedupeListings(collected).length;
             if (uniqueCount >= 120) return dedupeListings(collected).slice(0, 120);
@@ -1612,8 +1412,7 @@
     }
 
     if (collected.length) {
-      const cap = cfg.id === 'idealista' ? idealistaCap : 120;
-      return dedupeListings(collected).slice(0, cap);
+      return dedupeListings(collected).slice(0, 120);
     }
 
     throw lastError;
@@ -1632,145 +1431,6 @@
       }
     });
     return dedupeStrings(out);
-  }
-
-  function expandIdealistaTargets(urls, location, areaScope, mode) {
-    const out = [];
-    const q = (location || 'Lisboa').trim() || 'Lisboa';
-    const slug = slugifyLocation(q) || 'lisboa';
-    const maxPage = mode === 'deep' ? 8 : 4;
-
-    (urls || []).forEach(url => {
-      out.push(url);
-      const clean = url.split('?')[0].replace(/\/+$/, '');
-
-      if (/idealista\.pt\/comprar-casas\//i.test(clean)) {
-        for (let page = 2; page <= maxPage; page += 1) {
-          out.push(`${clean}/pagina-${page}.htm`);
-        }
-      }
-
-      const joiner = url.includes('?') ? '&' : '?';
-      out.push(`${url}${joiner}ordem=atualizado-desc`);
-      if (mode === 'deep') {
-        out.push(`${url}${joiner}ordem=precos-asc`);
-        out.push(`${url}${joiner}ordem=precos-desc`);
-      }
-    });
-
-    out.push(`https://www.idealista.pt/comprar-casas/${slug}/`);
-    out.push(`https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(q)}`);
-    out.push(`https://www.idealista.pt/comprar-casas/?q=${encodeURIComponent(q)}&ordem=atualizado-desc`);
-
-    if (areaScope === 'all-lisbon-towns') {
-      out.push('https://www.idealista.pt/comprar-casas/lisboa/');
-      out.push('https://www.idealista.pt/comprar-casas/?q=Lisboa');
-    }
-
-    return dedupeStrings(out);
-  }
-
-  async function fetchIdealistaTarget(targetUrl, cfg) {
-    const proxyUrls = buildProxyUrls(targetUrl, 'idealista');
-    const attempts = proxyUrls.map(async (proxyUrl) => {
-      const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'text/html,application/json;q=0.9,*/*;q=0.8' } }, 8500);
-      if (!res.ok) throw new Error('network');
-      const html = await res.text();
-      if (isBlockedScrapeResponse(html)) throw new Error('blocked');
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const parsed = parseHousingListings(doc, html, cfg);
-      if (!parsed.length) throw new Error('empty');
-      return parsed;
-    });
-
-    try {
-      const parsed = await Promise.any(attempts);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (error) {
-      return [];
-    }
-  }
-
-  async function tryFetchIdealistaDeepListings(location, areaScope, cfg, baseTargetUrls, maxNeeded, mode) {
-    const targetUrls = expandIdealistaTargets(baseTargetUrls, location, areaScope, mode);
-    const collected = [];
-    const batchSize = mode === 'deep' ? 3 : 2;
-
-    for (let i = 0; i < targetUrls.length; i += batchSize) {
-      const batch = targetUrls.slice(i, i + batchSize);
-      const results = await Promise.all(batch.map(url => fetchIdealistaTarget(url, cfg)));
-      results.forEach(items => {
-        if (Array.isArray(items) && items.length) collected.push(...items);
-      });
-      const unique = dedupeListings(collected);
-      if (unique.length >= maxNeeded) return unique.slice(0, maxNeeded);
-    }
-
-    return dedupeListings(collected).slice(0, maxNeeded);
-  }
-
-  async function tryFetchIdealistaApiListings(location, cfg) {
-    const fromRapidApi = await tryFetchIdealistaRapidApiListings(location, cfg);
-    if (fromRapidApi.length) return fromRapidApi;
-
-    const encoded = encodeURIComponent(location || 'Lisboa');
-    const endpoints = [
-      `https://www.idealista.pt/ajax/suggest?term=${encoded}`,
-      `https://www.idealista.pt/ajax/suggest?country=pt&operation=sale&locale=pt&term=${encoded}`
-    ];
-    const all = [];
-
-    for (const endpoint of endpoints) {
-      const proxyUrls = buildProxyUrls(endpoint, 'idealista');
-      for (const proxyUrl of proxyUrls) {
-        try {
-          const res = await fetchWithTimeout(proxyUrl, { headers: { 'Accept': 'application/json,text/plain,*/*' } }, 7000);
-          if (!res.ok) continue;
-          const raw = await res.text();
-          if (isBlockedScrapeResponse(raw)) continue;
-          const parsed = JSON.parse(raw);
-          collectListingsFromUnknownJson(parsed, cfg, all);
-          if (all.length >= 8) return dedupeListings(all).slice(0, 12);
-        } catch (error) {
-          // continue to next candidate endpoint/proxy
-        }
-      }
-    }
-    return dedupeListings(all).slice(0, 12);
-  }
-
-  async function tryFetchIdealistaRapidApiListings(location, cfg) {
-    const apiCfg = getIdealistaRapidApiConfig();
-    if (!apiCfg.key) return [];
-
-    const query = encodeURIComponent(location || 'Lisboa');
-    const endpoints = [
-      `${apiCfg.baseUrl}/properties/list?location=${query}&operation=sale&country=pt&locale=pt`,
-      `${apiCfg.baseUrl}/properties/search?location=${query}&operation=sale&country=pt&locale=pt`
-    ];
-    const all = [];
-
-    for (const endpoint of endpoints) {
-      try {
-        const res = await fetch(endpoint, {
-          headers: {
-            'X-RapidAPI-Key': apiCfg.key,
-            'X-RapidAPI-Host': apiCfg.host,
-            'Accept': 'application/json'
-          }
-        });
-        if (!res.ok) continue;
-        const raw = await res.text();
-        if (isBlockedScrapeResponse(raw)) continue;
-        const parsed = JSON.parse(raw);
-        collectListingsFromUnknownJson(parsed, cfg, all);
-        if (all.length >= 8) return dedupeListings(all).slice(0, 12);
-      } catch (error) {
-        // continue to next endpoint
-      }
-    }
-
-    return dedupeListings(all).slice(0, 12);
   }
 
   function collectListingsFromUnknownJson(value, cfg, out, depth) {
@@ -1824,7 +1484,6 @@
   function isListingUrl(url, cfg) {
     if (!url || !cfg) return false;
     if (cfg.id === 'imovirtual') return /imovirtual\.com\/pt\/anuncio\//i.test(url);
-    if (cfg.id === 'idealista') return /idealista\.(pt|com)\/imovel\//i.test(url);
     if (cfg.id === 'propertium') return /propertium\.(io|com)\/.*property|propertium\.(io|com)\/.*listing/i.test(url);
     return url.includes(cfg.domain);
   }
@@ -1946,9 +1605,22 @@
   function detectListingConfig(item) {
     const source = (item?.source || '').toLowerCase();
     const url = (item?.url || '').toLowerCase();
-    if (source.includes('idealista') || url.includes('idealista.')) return HOUSING_SOURCES.idealista;
     if (source.includes('propertium') || url.includes('propertium.')) return HOUSING_SOURCES.propertium;
     return HOUSING_SOURCES.imovirtual;
+  }
+
+  function coercePlainText(value) {
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number') return value.toString();
+    if (Array.isArray(value)) return value.map(coercePlainText).filter(Boolean).join(' ').trim();
+    if (value && typeof value === 'object') {
+      const keys = ['rendered', 'text', 'label', 'value', 'name', 'title', 'address', 'city', 'location'];
+      for (const key of keys) {
+        const inner = coercePlainText(value[key]);
+        if (inner) return inner.trim();
+      }
+    }
+    return '';
   }
 
   function isDirectListingLink(url, cfg) {
@@ -1956,7 +1628,6 @@
     const clean = normalizeUrl(url, cfg.domain);
     if (!clean) return false;
     if (cfg.id === 'imovirtual') return /^https:\/\/(www\.)?imovirtual\.com\/pt\/anuncio\//i.test(clean);
-    if (cfg.id === 'idealista') return /^https:\/\/(www\.)?idealista\.(pt|com)\/imovel\//i.test(clean);
     if (cfg.id === 'propertium') return /^https:\/\/(www\.)?propertium\.(io|com)\/.*property|^https:\/\/(www\.)?propertium\.(io|com)\/.*listing/i.test(clean) || url.includes('propertium');
     return false;
   }
@@ -1965,11 +1636,11 @@
     const sourceCfg = detectListingConfig(raw);
     const normalizedUrl = normalizeUrl(raw.url || '', sourceCfg?.domain || fallbackDomain);
     return {
-      title: (raw.title || '').trim(),
-      price: (raw.price || '').toString().trim(),
-      location: (raw.location || '').trim(),
+      title: coercePlainText(raw.title || raw.name),
+      price: coercePlainText(raw.price || raw.priceLabel),
+      location: coercePlainText(raw.location || raw.address),
       url: normalizedUrl,
-      source: raw.source || ''
+      source: raw.source || sourceCfg?.label || ''
     };
   }
 
@@ -2004,16 +1675,6 @@
       ? (window.__MYHOME_PRIVATE__ || window.__CASAJA_PRIVATE__)
       : {};
     return { ...localCfg, ...globalCfg };
-  }
-
-  function getIdealistaRapidApiConfig() {
-    const cfg = getPrivateRuntimeConfig();
-    const host = cfg.idealistaRapidApiHost || 'idealista-com1.p.rapidapi.com';
-    return {
-      key: cfg.idealistaRapidApiKey || '',
-      host,
-      baseUrl: cfg.idealistaRapidApiBaseUrl || `https://${host}`,
-    };
   }
 
   function readHousingFilters(location) {
@@ -2796,6 +2457,114 @@
   /* ═══════════════════════════════════════
      FAQ
      ═══════════════════════════════════════ */
+
+  // Lightweight semantic-ish matcher for FAQs without external APIs
+  const FAQ_SYNONYMS = [
+    ['deposit', 'down payment', 'entry', 'entrada'],
+    ['mortgage', 'home loan', 'housing credit', 'credito', 'crédito'],
+    ['imt', 'property transfer tax'],
+    ['imi', 'annual property tax'],
+    ['effort rate', 'debt to income', 'taxa de esforco', 'taxa de esforço'],
+    ['fixed rate', 'taxa fixa', 'stable interest'],
+    ['variable rate', 'taxa variavel', 'taxa variável', 'floating interest'],
+    ['pre approval', 'pre-approval', 'pre aprovação', 'pré aprovação'],
+  ];
+
+  const FAQ_JOURNEY_EDGES = {
+    financing: ['financing', 'process'],
+    taxes: ['taxes', 'eligibility'],
+    eligibility: ['financing', 'process'],
+    process: ['financing', 'taxes']
+  };
+
+  let FAQ_INDEX = [];
+
+  function normalizeText(text) {
+    if (!text) return '';
+    return text
+      .toString()
+      .toLowerCase()
+      .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ') // collapse whitespace
+      .trim();
+  }
+
+  function applySynonyms(text) {
+    let result = ` ${text} `;
+    FAQ_SYNONYMS.forEach(group => {
+      const main = group[0];
+      group.forEach(term => {
+        const rx = new RegExp(`\\b${term.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'g');
+        result = result.replace(rx, ` ${main} `);
+      });
+    });
+    return normalizeText(result);
+  }
+
+  function tokenize(text) {
+    return applySynonyms(text)
+      .split(' ')
+      .filter(Boolean);
+  }
+
+  function buildFaqIndex() {
+    FAQ_INDEX = FAQ_DATA.map((item, i) => {
+      const qAll = `${item.q.pt} ${item.q.en}`;
+      const aAll = `${item.a.pt} ${item.a.en}`;
+      const tokens = new Set([...tokenize(qAll), ...tokenize(aAll)]);
+      return { idx: i, cat: item.cat, tokens };
+    });
+  }
+
+  function scoreFaq(queryTokens, faq) {
+    const overlap = queryTokens.filter(t => faq.tokens.has(t)).length;
+    const denom = new Set([...queryTokens, ...faq.tokens]).size || 1;
+    return overlap / denom;
+  }
+
+  function findBestFaqs(query) {
+    const tokens = tokenize(query);
+    if (!tokens.length) return [];
+
+    const catHints = ['tax', 'imt', 'imi', 'stamp', 'selo'].some(t => tokens.includes(t)) ? 'taxes'
+      : ['mortgage', 'loan', 'credito', 'prestacao', 'prestação'].some(t => tokens.includes(t)) ? 'financing'
+      : ['eligibility', 'apoio', 'jovem', 'youth'].some(t => tokens.includes(t)) ? 'support'
+      : null;
+
+    return FAQ_INDEX
+      .filter(faq => !catHints || faq.cat === catHints)
+      .map(faq => ({ ...faq, score: scoreFaq(tokens, faq) }))
+      .sort((a, b) => b.score - a.score);
+  }
+
+  function pickRecommendations(sortedFaqs, main, count = 3) {
+    if (!main) return [];
+    const sameCat = sortedFaqs.filter(f => f.idx !== main.idx && f.cat === main.cat);
+    const nextCats = FAQ_JOURNEY_EDGES[main.cat] || [];
+    const journey = sortedFaqs.filter(f => f.idx !== main.idx && nextCats.includes(f.cat));
+
+    const recs = [];
+    const pushUnique = (item) => {
+      if (!item) return;
+      if (recs.find(r => r.idx === item.idx)) return;
+      recs.push(item);
+    };
+
+    pushUnique(sameCat[0]);
+    pushUnique(sameCat[1]);
+    pushUnique(journey[0]);
+
+    if (recs.length < count) {
+      sortedFaqs.forEach(item => {
+        if (recs.length >= count) return;
+        if (item.idx === main.idx) return;
+        pushUnique(item);
+      });
+    }
+    return recs.slice(0, count);
+  }
+
   function renderFAQ() {
     const list = document.getElementById('faq-list');
     if (!list) return;
@@ -2858,13 +2627,13 @@
     const right = (lon + delta).toFixed(6);
     const top = (lat + delta).toFixed(6);
     const bottom = (lat - delta).toFixed(6);
-    return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik&marker=${lat.toFixed(6)}%2C${lon.toFixed(6)}`;
+    return `https://www.openstreetmap.org/export/embed.html?bbox=${left}%2C${bottom}%2C${right}%2C${top}&layer=mapnik`;
   }
 
   function buildAirEmbedUrl(lat, lon) {
     const latVal = lat.toFixed(4);
     const lonVal = lon.toFixed(4);
-    return `https://embed.windy.com/embed2.html?lat=${latVal}&lon=${lonVal}&detailLat=${latVal}&detailLon=${lonVal}&width=650&height=420&zoom=9&level=surface&overlay=pm2p5&menu=&message=true&marker=true&calendar=24&pressure=true&type=map&location=coordinates&detail=true&metricWind=default&metricTemp=default&radarRange=-1`;
+    return `https://embed.windy.com/embed2.html?lat=${latVal}&lon=${lonVal}&detailLat=${latVal}&detailLon=${lonVal}&width=650&height=420&zoom=9&level=surface&overlay=pm2p5&menu=&message=true&marker=false&calendar=24&pressure=true&type=map&location=coordinates&detail=true&metricWind=default&metricTemp=default&radarRange=-1`;
   }
 
   function buildShadeEmbedUrl(lat, lon) {
@@ -2944,7 +2713,7 @@
         externalLink.href = buildShadeEmbedUrl(selected.lat, selected.lon);
       } else {
         frame.src = buildOsmEmbedUrl(selected.lat, selected.lon);
-        externalLink.href = `https://www.openstreetmap.org/?mlat=${selected.lat.toFixed(6)}&mlon=${selected.lon.toFixed(6)}#map=12/${selected.lat.toFixed(6)}/${selected.lon.toFixed(6)}`;
+        externalLink.href = `https://www.openstreetmap.org/#map=12/${selected.lat.toFixed(6)}/${selected.lon.toFixed(6)}`;
       }
     };
 
@@ -2981,6 +2750,19 @@
 
   function initFAQ() {
     renderFAQ();
+    buildFaqIndex();
+
+    const ensureRecPanel = () => {
+      let panel = document.getElementById('faq-recs');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'faq-recs';
+        panel.className = 'faq-recs';
+        const container = document.getElementById('faq');
+        if (container) container.appendChild(panel);
+      }
+      return panel;
+    };
 
     // Category filtering
     document.querySelectorAll('.faq-cat').forEach(btn => {
@@ -3000,18 +2782,67 @@
     const clearBtn = document.getElementById('faq-clear');
 
     searchInput.addEventListener('input', () => {
-      const q = searchInput.value.toLowerCase().trim();
+      const q = searchInput.value.trim();
       clearBtn.classList.toggle('visible', q.length > 0);
-      let found = 0;
 
-      document.querySelectorAll('.faq-item').forEach(item => {
-        const text = item.textContent.toLowerCase();
-        const match = q === '' || text.includes(q);
-        item.style.display = match ? '' : 'none';
-        if (match) found++;
-      });
+      const panel = ensureRecPanel();
+      panel.innerHTML = '';
 
-      document.getElementById('faq-no-results').style.display = found === 0 ? '' : 'none';
+      if (!q) {
+        document.querySelectorAll('.faq-item').forEach(item => { item.style.display = ''; });
+        document.getElementById('faq-no-results').style.display = 'none';
+        return;
+      }
+
+      const matches = findBestFaqs(q);
+      const high = matches[0];
+      const highScore = high ? high.score : 0;
+      const THRESH_HIGH = 0.28;
+      const THRESH_LOW = 0.18;
+
+      // Low-confidence mode: show top 3 candidates without hiding others
+      if (highScore < THRESH_LOW) {
+        document.querySelectorAll('.faq-item').forEach(item => { item.style.display = 'none'; });
+        const topCandidates = matches.slice(0, 3);
+        topCandidates.forEach(c => {
+          const node = document.querySelector(`.faq-item[data-index="${c.idx}"]`);
+          if (node) node.style.display = '';
+        });
+        document.getElementById('faq-no-results').style.display = matches.length === 0 ? '' : 'none';
+        panel.innerHTML = matches.length === 0 ? '' : `<div class="faq-recs-title">Not sure what you meant? Pick one of these:</div>`;
+        return;
+      }
+
+      // High-confidence: show best match and hide unrelated
+      document.querySelectorAll('.faq-item').forEach(item => { item.style.display = 'none'; });
+      if (high) {
+        const mainNode = document.querySelector(`.faq-item[data-index="${high.idx}"]`);
+        if (mainNode) mainNode.style.display = '';
+
+        const recs = pickRecommendations(matches, high, 3);
+        if (recs.length) {
+          const html = [`<div class="faq-recs-title">You may also want to see:</div>`]
+            .concat(recs.map(r => {
+              const item = FAQ_DATA[r.idx];
+              return `<button class="faq-rec" data-target="${r.idx}">${item.q[currentLang]}</button>`;
+            })).join('');
+          panel.innerHTML = html;
+
+          panel.querySelectorAll('.faq-rec').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const targetIdx = btn.getAttribute('data-target');
+              document.querySelectorAll('.faq-item').forEach(item => item.style.display = 'none');
+              const targetNode = document.querySelector(`.faq-item[data-index="${targetIdx}"]`);
+              if (targetNode) {
+                targetNode.style.display = '';
+                targetNode.classList.add('open');
+              }
+            });
+          });
+        }
+      }
+
+      document.getElementById('faq-no-results').style.display = matches.length === 0 ? '' : 'none';
     });
 
     clearBtn.addEventListener('click', () => {
@@ -3158,7 +2989,8 @@
     const setMode = (mode) => {
       currentMode = mode;
       modeButtons.forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-mode') === mode));
-      footMeta.textContent = `Groq · modo ${mode === 'quick' ? 'curto' : mode}`;
+      const modeLabel = mode === 'quick' ? 'curto' : mode;
+      footMeta.textContent = currentLang === 'pt' ? `Assistente · modo ${modeLabel}` : `Assistant · ${modeLabel} mode`;
       try { sessionStorage.setItem(CHAT_MODE_KEY, mode); } catch (e) { /* ignore */ }
     };
 
@@ -3209,7 +3041,11 @@
       const activeMode = getSelectedMode();
       if (activeMode !== currentMode) setMode(activeMode);
       setTyping(true);
-      setFoot(currentLang === 'pt' ? 'A consultar Groq...' : 'Talking to Groq...', `Groq · modo ${activeMode === 'quick' ? 'curto' : activeMode}`);
+      const modeLabel = activeMode === 'quick' ? 'curto' : activeMode;
+      setFoot(
+        currentLang === 'pt' ? 'A consultar o assistente...' : 'Talking to the assistant...',
+        currentLang === 'pt' ? `Assistente · modo ${modeLabel}` : `Assistant · ${modeLabel} mode`
+      );
 
       try {
         const res = await fetch(CHATBOT_API_URL, {
@@ -3225,14 +3061,18 @@
           })
         });
 
-        if (!res.ok) throw new Error('Groq API unavailable');
+        if (!res.ok) throw new Error('Assistant API unavailable');
         const data = await res.json();
         const reply = (data?.response || '').trim() || fallbackAnswer(userMessage);
         addMessage(reply, 'bot');
-        setFoot(currentLang === 'pt' ? 'Pronto' : 'Ready', `Groq · ${data.mode || activeMode}`);
+        const readyModeLabel = data.mode || activeMode;
+        setFoot(
+          currentLang === 'pt' ? 'Pronto' : 'Ready',
+          currentLang === 'pt' ? `Assistente · ${readyModeLabel}` : `Assistant · ${readyModeLabel} mode`
+        );
       } catch (error) {
         addMessage(fallbackAnswer(userMessage), 'bot');
-        setFoot(currentLang === 'pt' ? 'Modo offline' : 'Offline mode', 'Groq indisponível');
+        setFoot(currentLang === 'pt' ? 'Modo offline' : 'Offline mode', currentLang === 'pt' ? 'Assistente indisponível' : 'Assistant unavailable');
       } finally {
         isSending = false;
         setTyping(false);
@@ -3296,7 +3136,10 @@
         if (e.key === 'Escape' && e.ctrlKey) {
           try {
             await fetch(CHATBOT_CLEAR_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
-            setFoot(currentLang === 'pt' ? 'Memória limpa' : 'Memory cleared', 'Groq · sessão reiniciada');
+            setFoot(
+              currentLang === 'pt' ? 'Memória limpa' : 'Memory cleared',
+              currentLang === 'pt' ? 'Assistente · sessão reiniciada' : 'Assistant · session reset'
+            );
           } catch (err) {
             // ignore
           }
@@ -3422,6 +3265,27 @@
   }
 
   /* ═══════════════════════════════════════
+     TILT EFFECTS (lightweight hover tilt)
+     ═══════════════════════════════════════ */
+  function initTiltEffects() {
+    const items = document.querySelectorAll('[data-tilt]');
+    if (!items.length) return;
+
+    items.forEach(el => {
+      const strength = Number(el.getAttribute('data-tilt')) || 8;
+      el.addEventListener('mousemove', (e) => {
+        const rect = el.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width - 0.5) * strength;
+        const y = ((e.clientY - rect.top) / rect.height - 0.5) * strength;
+        el.style.transform = `rotateX(${(-y).toFixed(2)}deg) rotateY(${x.toFixed(2)}deg)`;
+      });
+      el.addEventListener('mouseleave', () => {
+        el.style.transform = 'rotateX(0deg) rotateY(0deg)';
+      });
+    });
+  }
+
+  /* ═══════════════════════════════════════
      LEARN MODAL CLOSE
      ═══════════════════════════════════════ */
   function initLearnModal() {
@@ -3454,7 +3318,8 @@
     initTiltEffects();
 
     // Set initial language
-    setLanguage('pt');
+    const savedLang = localStorage.getItem('myhome-lang') || 'pt';
+    setLanguage(savedLang);
   }
 
   // Launch
