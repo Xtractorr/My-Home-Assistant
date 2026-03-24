@@ -197,10 +197,13 @@
       </div>
 
       <div class="hero-visual animate-scale-in" data-delay="200">
-        <div class="hero-image-placeholder">
+        <div
+          class="hero-image-placeholder"
+          style="background: linear-gradient(135deg, rgba(45,95,74,0.1), rgba(61,107,155,0.08)), url('assets/hero-main-local.jpg'); background-size: cover; background-position: center;"
+        >
           <img
             class="hero-main-image"
-            src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
+            src="assets/hero-main-local.jpg"
             alt="Casa moderna com luz natural"
             loading="eager"
             decoding="async"
@@ -361,7 +364,19 @@
 
       <!-- Charts Row -->
       <div class="charts-grid reveal">
-        <!-- Chart 1: When plan to buy -->
+        <!-- Chart 1: Main obstacles (circle left) -->
+        <div class="chart-card glass">
+          <h3 class="chart-title" data-translate="dados.chart2.title">Qual o principal obstáculo?</h3>
+          <p class="chart-subtitle" data-translate="dados.chart2.sub">Obstáculo mais referido pelos inquiridos</p>
+          <div class="chart-container chart-container-circle">
+            <canvas id="chart-obstacles" aria-label="Gráfico: principais obstáculos"></canvas>
+          </div>
+          <div class="chart-insight glass-light" data-translate="dados.chart2.insight">
+            A dificuldade financeira é esmagadora em 65% dos casos.
+          </div>
+        </div>
+
+        <!-- Chart 2: When plan to buy (bar right) -->
         <div class="chart-card glass">
           <h3 class="chart-title" data-translate="dados.chart1.title">Quando planeiam comprar casa?</h3>
           <p class="chart-subtitle" data-translate="dados.chart1.sub">113 jovens adultos responderam</p>
@@ -373,19 +388,19 @@
           </div>
         </div>
 
-        <!-- Chart 2: Main obstacles -->
+        <!-- Chart 3: Life impact (circle left) -->
         <div class="chart-card glass">
-          <h3 class="chart-title" data-translate="dados.chart2.title">Qual o principal obstáculo?</h3>
-          <p class="chart-subtitle" data-translate="dados.chart2.sub">Obstáculo mais referido pelos inquiridos</p>
-          <div class="chart-container">
-            <canvas id="chart-obstacles" aria-label="Gráfico: principais obstáculos"></canvas>
+          <h3 class="chart-title" data-translate="dados.chart4.title">Impacto nas decisões de vida</h3>
+          <p class="chart-subtitle" data-translate="dados.chart4.sub">Afetou decisões importantes?</p>
+          <div class="chart-container chart-container-circle">
+            <canvas id="chart-impact" aria-label="Gráfico: impacto nas decisões de vida"></canvas>
           </div>
-          <div class="chart-insight glass-light" data-translate="dados.chart2.insight">
-            A dificuldade financeira é esmagadora em 65% dos casos.
+          <div class="chart-insight glass-light" data-translate="dados.chart4.insight">
+            Não ter casa própria afeta planos de vida de 85% dos inquiridos.
           </div>
         </div>
 
-        <!-- Chart 3: Complexity perception -->
+        <!-- Chart 4: Complexity perception (bar right) -->
         <div class="chart-card glass">
           <h3 class="chart-title" data-translate="dados.chart3.title">Consideras o processo complexo?</h3>
           <p class="chart-subtitle" data-translate="dados.chart3.sub">Perceção de complexidade</p>
@@ -394,18 +409,6 @@
           </div>
           <div class="chart-insight glass-light" data-translate="dados.chart3.insight">
             Mais de 4 em cada 5 pessoas acha o processo complexo.
-          </div>
-        </div>
-
-        <!-- Chart 4: Life impact -->
-        <div class="chart-card glass">
-          <h3 class="chart-title" data-translate="dados.chart4.title">Impacto nas decisões de vida</h3>
-          <p class="chart-subtitle" data-translate="dados.chart4.sub">Afetou decisões importantes?</p>
-          <div class="chart-container">
-            <canvas id="chart-impact" aria-label="Gráfico: impacto nas decisões de vida"></canvas>
-          </div>
-          <div class="chart-insight glass-light" data-translate="dados.chart4.insight">
-            Não ter casa própria afeta planos de vida de 85% dos inquiridos.
           </div>
         </div>
       </div>

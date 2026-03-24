@@ -182,10 +182,48 @@
         setLanguage(next);
       });
     }
+
+    // Scroll spy for nav links
+    initScrollSpy();
+  }
+
+  function initScrollSpy() {
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('section[id]');
+    if (!navLinks.length || !sections.length) return;
+
+    const updateActiveLink = () => {
+      const scrollPos = window.scrollY + 100; // Offset for navbar height
+
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        const sectionHeight = section.offsetHeight;
+        const sectionId = section.getAttribute('id');
+
+        if (scrollPos >= sectionTop && scrollPos < sectionTop + sectionHeight) {
+          navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href') === '#' + sectionId) {
+              link.classList.add('active');
+            }
+          });
+        }
+      });
+
+      // Special case: if at top of page, highlight hero/Início
+      if (window.scrollY < 50) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const heroLink = document.querySelector('.nav-link[href="#hero"]');
+        if (heroLink) heroLink.classList.add('active');
+      }
+    };
+
+    updateActiveLink();
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
   }
 
   function initScrollReveal() {
-    const revealItems = document.querySelectorAll('.reveal, .animate-fade-up');
+    const revealItems = document.querySelectorAll('.reveal, .animate-fade-up, .animate-scale-in');
     if (!revealItems.length) return;
 
     const observer = new IntersectionObserver(entries => {
@@ -199,7 +237,7 @@
 
     revealItems.forEach(el => {
       const delay = el.getAttribute('data-delay');
-      if (delay) el.style.animationDelay = `${delay}ms`;
+      if (delay) el.style.transitionDelay = `${delay}ms`;
       observer.observe(el);
     });
   }
@@ -254,7 +292,13 @@
     document.querySelectorAll('[data-translate]').forEach(el => {
       const key = el.getAttribute('data-translate');
       if (dict[key]) {
-        el.innerHTML = dict[key];
+        let value = dict[key];
+        // Keep quiz step number dynamic instead of showing the {n} placeholder
+        if (key === 'quiz.step') {
+          const currentStep = parseInt(el.dataset.step || '1', 10) || 1;
+          value = value.replace('{n}', currentStep.toString());
+        }
+        el.innerHTML = value;
       }
     });
   }
@@ -273,9 +317,10 @@
     if (typeof reRenderQuizResult === 'function') reRenderQuizResult();
 
     const stepText = document.getElementById('quiz-step-text');
-    if (stepText && stepText.textContent?.includes('{n}')) {
+    if (stepText) {
       const label = T[currentLang]?.['quiz.step'] || 'Passo {n} de 3';
-      stepText.textContent = label.replace('{n}', '1');
+      const currentStep = parseInt(stepText.dataset.step || '1', 10) || 1;
+      stepText.textContent = label.replace('{n}', currentStep.toString());
     }
 
     const langLabel = document.getElementById('lang-current');
@@ -302,6 +347,7 @@
       const pct = Math.min(100, (step / 3) * 100);
       progressFill.style.width = `${pct}%`;
       const label = T[currentLang]?.['quiz.step'] || 'Passo {n} de 3';
+      stepText.dataset.step = step.toString();
       stepText.textContent = label.replace('{n}', step.toString());
     };
 
@@ -466,6 +512,29 @@
 
     if (!whenCtx || !obstaclesCtx || !complexityCtx || !impactCtx) return;
 
+    const textDark = '#2c3e50';
+    const axisOptions = {
+      ticks: { color: textDark, font: { weight: '500' } },
+      grid: { color: 'rgba(0, 0, 0, 0.05)' }
+    };
+    const tooltipOptions = {
+      backgroundColor: 'rgba(44, 62, 80, 0.9)',
+      titleFont: { size: 14, weight: 'bold' },
+      bodyFont: { size: 14 },
+      padding: 12,
+      cornerRadius: 6
+    };
+    const legendOptions = {
+      display: true,
+      position: 'bottom',
+      labels: {
+        color: textDark,
+        font: { size: 13, weight: '500' },
+        padding: 20,
+        usePointStyle: true
+      }
+    };
+
     chartInstances.when = new Chart(whenCtx, {
       type: 'bar',
       data: {
@@ -477,7 +546,18 @@
           borderRadius: 8
         }]
       },
-      options: { responsive: true, plugins: { legend: { display: false } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { display: false },
+          tooltip: tooltipOptions
+        },
+        scales: {
+          x: axisOptions,
+          y: axisOptions
+        }
+      }
     });
 
     chartInstances.obstacles = new Chart(obstaclesCtx, {
@@ -487,10 +567,20 @@
         datasets: [{
           label: 'Respostas',
           data: [65, 18, 12, 5],
-          backgroundColor: [colors.green, colors.blue, colors.beige, colors.red]
+          backgroundColor: [colors.green, colors.blue, colors.beige, colors.red],
+          borderWidth: 2,
+          borderColor: '#ffffff'
         }]
       },
-      options: { responsive: true, cutout: '60%' }
+      options: { 
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: legendOptions,
+          tooltip: tooltipOptions
+        }
+      }
     });
 
     chartInstances.complexity = new Chart(complexityCtx, {
@@ -500,24 +590,45 @@
         datasets: [{
           label: 'Respostas',
           data: [42, 38, 19, 4],
-          backgroundColor: colors.blueLight,
+          backgroundColor: [colors.red, colors.orange, colors.beige, colors.greenLight],
           borderRadius: 8
         }]
       },
-      options: { responsive: true, plugins: { legend: { display: false } } }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { display: false },
+          tooltip: tooltipOptions
+        },
+        scales: {
+          x: axisOptions,
+          y: axisOptions
+        }
+      }
     });
 
     chartInstances.impact = new Chart(impactCtx, {
-      type: 'pie',
+      type: 'doughnut',
       data: {
         labels: ['Sim, muito', 'Parcialmente', 'Pouco'],
         datasets: [{
           label: 'Respostas',
           data: [55, 30, 15],
-          backgroundColor: [colors.blue, colors.greenLight, colors.beige]
+          backgroundColor: [colors.red, colors.orange, colors.greenLight],
+          borderWidth: 2,
+          borderColor: '#ffffff'
         }]
       },
-      options: { responsive: true }
+      options: { 
+        responsive: true, 
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: legendOptions,
+          tooltip: tooltipOptions
+        }
+      }
     });
 
     updateChartsLanguage(currentLang);
