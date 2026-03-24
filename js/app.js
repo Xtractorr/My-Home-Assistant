@@ -327,6 +327,49 @@
     const langOther = document.getElementById('lang-other');
     if (langLabel) langLabel.textContent = lang.toUpperCase();
     if (langOther) langOther.textContent = lang === 'pt' ? 'EN' : 'PT';
+
+    // Learn cards are rendered from JS data, so re-render them on language switch.
+    const activeLearnTab = document.querySelector('.learn-tab.active');
+    const activeLearnCat = activeLearnTab?.getAttribute('data-cat') || 'all';
+    const learnGrid = document.getElementById('learn-grid');
+    if (learnGrid && typeof LEARN_CARDS !== 'undefined') {
+      renderLearnCards();
+      document.querySelectorAll('.learn-card').forEach(card => {
+        card.style.display = (activeLearnCat === 'all' || card.getAttribute('data-cat') === activeLearnCat) ? '' : 'none';
+      });
+    }
+
+    const learnModal = document.getElementById('learn-modal');
+    const openLearnIndex = parseInt(learnModal?.dataset?.index || '-1', 10);
+    if (learnModal && learnModal.classList.contains('open') && LEARN_CARDS[openLearnIndex]) {
+      document.getElementById('learn-modal-content').innerHTML = LEARN_CARDS[openLearnIndex].full[currentLang];
+    }
+
+    // FAQ entries are also rendered from JS data. Re-render while preserving current UI state.
+    const faqList = document.getElementById('faq-list');
+    if (faqList && typeof FAQ_DATA !== 'undefined') {
+      const activeFaqCat = document.querySelector('.faq-cat.active')?.getAttribute('data-cat') || 'all';
+      const openFaqIndex = document.querySelector('.faq-item.open')?.getAttribute('data-index') || null;
+      renderFAQ();
+
+      document.querySelectorAll('.faq-item').forEach(item => {
+        item.style.display = (activeFaqCat === 'all' || item.getAttribute('data-cat') === activeFaqCat) ? '' : 'none';
+      });
+
+      if (openFaqIndex) {
+        const openNode = document.querySelector(`.faq-item[data-index="${openFaqIndex}"]`);
+        if (openNode && (activeFaqCat === 'all' || openNode.getAttribute('data-cat') === activeFaqCat)) {
+          openNode.classList.add('open');
+          const openBtn = openNode.querySelector('.faq-question');
+          if (openBtn) openBtn.setAttribute('aria-expanded', 'true');
+        }
+      }
+
+      const faqSearch = document.getElementById('faq-search');
+      if (faqSearch && faqSearch.value.trim()) {
+        faqSearch.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
   }
 
   /* ═══════════════════════════════════════
@@ -2553,6 +2596,7 @@
   function openLearnModal(index) {
     const card = LEARN_CARDS[index];
     const modal = document.getElementById('learn-modal');
+    modal.dataset.index = String(index);
     document.getElementById('learn-modal-content').innerHTML = card.full[currentLang];
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
@@ -2560,8 +2604,10 @@
   }
 
   function closeLearnModal() {
-    document.getElementById('learn-modal').classList.remove('open');
-    document.getElementById('learn-modal').setAttribute('aria-hidden', 'true');
+    const modal = document.getElementById('learn-modal');
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    delete modal.dataset.index;
     toggleOverlay(false);
   }
 
