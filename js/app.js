@@ -105,6 +105,24 @@
     { key: 'setubal', lat: 38.5244, lon: -8.8882, label: { pt: 'Setubal', en: 'Setubal' } },
     { key: 'faro', lat: 37.0194, lon: -7.9304, label: { pt: 'Faro', en: 'Faro' } }
   ];
+
+  function getResourceMapLocations() {
+    const detailedLisbonAreas = Object.entries(HOUSING_AREA_COORDS).map(([key, area]) => ({
+      key: `lisbon-${key}`,
+      lat: area.lat,
+      lon: area.lon,
+      label: {
+        pt: `Lisboa - ${area.name}`,
+        en: `Lisbon - ${area.name}`
+      }
+    }));
+
+    return [
+      { key: 'lisbon-all', lat: 38.7223, lon: -9.1393, label: { pt: 'Lisboa (todas as zonas)', en: 'Lisbon (all areas)' } },
+      ...LIVE_MAP_LOCATIONS,
+      ...detailedLisbonAreas
+    ];
+  }
   const HOUSING_AREA_COORDS = {
     // Lisbon and nearby areas commonly used by this UI selector
     ajuda: { name: 'Ajuda', lat: 38.7085, lon: -9.1983 },
@@ -2797,12 +2815,187 @@
     return `https://shademap.app/#12/${lat.toFixed(4)}/${lon.toFixed(4)}`;
   }
 
-  async function fetchAirQualitySnapshot(lat, lon) {
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const toRad = (value) => (value * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2
+      + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return 6371 * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+  }
+
+  function pmToUsAqi(pm, pollutant) {
+    if (!Number.isFinite(pm)) return null;
+    const bp = pollutant === 'pm25'
+      ? [
+          { cLow: 0.0, cHigh: 12.0, iLow: 0, iHigh: 50 },
+          { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
+          { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 },
+          { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 },
+          { cLow: 150.5, cHigh: 250.4, iLow: 201, iHigh: 300 },
+          { cLow: 250.5, cHigh: 500.4, iLow: 301, iHigh: 500 }
+        ]
+      : [
+          { cLow: 0, cHigh: 54, iLow: 0, iHigh: 50 },
+          { cLow: 55, cHigh: 154, iLow: 51, iHigh: 100 },
+          { cLow: 155, cHigh: 254, iLow: 101, iHigh: 150 },
+          { cLow: 255, cHigh: 354, iLow: 151, iHigh: 200 },
+          { cLow: 355, cHigh: 424, iLow: 201, iHigh: 300 },
+          { cLow: 425, cHigh: 604, iLow: 301, iHigh: 500 }
+        ];
+
+    const rounded = pollutant === 'pm25'
+      ? Math.floor(pm * 10) / 10
+      : Math.floor(pm);
+
+    const range = bp.find(item => rounded >= item.cLow && rounded <= item.cHigh);
+    if (!range) return rounded > bp[bp.length - 1].cHigh ? 500 : 0;
+
+    const aqi = ((range.iHigh - range.iLow) / (range.cHigh - range.cLow)) * (rounded - range.cLow) + range.iLow;
+    return Math.round(aqi);
+  }
+
+  function computeUsAqiFromPm(pm25, pm10) {
+    const aqi25 = pmToUsAqi(pm25, 'pm25');
+    const aqi10 = pmToUsAqi(pm10, 'pm10');
+    if (!Number.isFinite(aqi25) && !Number.isFinite(aqi10)) return null;
+    if (!Number.isFinite(aqi25)) return aqi10;
+    if (!Number.isFinite(aqi10)) return aqi25;
+    return Math.max(aqi25, aqi10);
+  }
+
+  async function fetchSensorCommunitySnapshot(lat, lon) {
+    // Sensor.Community provides open station-level PM data with good local granularity.
+    const endpoint = `https://data.sensor.community/airrohr/v1/filter/area=${lat},${lon},20`;
+    const response = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
+    if (!response.ok) throw new Error('sensor-community-api');
+    const payload = await response.json();
+    if (!Array.isArray(payload) || !payload.length) return null;
+
+    const points = payload.map(item => {
+      const values = Array.isArray(item?.sensordatavalues) ? item.sensordatavalues : [];
+      const pm10Raw = values.find(v => v?.value_type === 'P1')?.value;
+      const pm25Raw = values.find(v => v?.value_type === 'P2')?.value;
+      const latRaw = Number(item?.location?.latitude);
+      const lonRaw = Number(item?.location?.longitude);
+
+      const pm10 = Number(pm10Raw);
+      const pm25 = Number(pm25Raw);
+      if (!Number.isFinite(latRaw) || !Number.isFinite(lonRaw)) return null;
+      if (!Number.isFinite(pm10) && !Number.isFinite(pm25)) return null;
+
+      const dKm = Math.max(0.2, haversineKm(lat, lon, latRaw, lonRaw));
+      const weight = 1 / (dKm * dKm);
+      return {
+        pm10: Number.isFinite(pm10) ? pm10 : null,
+        pm25: Number.isFinite(pm25) ? pm25 : null,
+        weight,
+        timestamp: item?.timestamp || null
+      };
+    }).filter(Boolean);
+
+    if (!points.length) return null;
+
+    const weightedAverage = (field) => {
+      let total = 0;
+      let totalW = 0;
+      points.forEach(point => {
+        if (Number.isFinite(point[field])) {
+          total += point[field] * point.weight;
+          totalW += point.weight;
+        }
+      });
+      if (!totalW) return null;
+      return total / totalW;
+    };
+
+    const pm25 = weightedAverage('pm25');
+    const pm10 = weightedAverage('pm10');
+    const aqi = computeUsAqiFromPm(pm25, pm10);
+    if (!Number.isFinite(aqi)) return null;
+
+    return {
+      european_aqi: aqi,
+      pm2_5: pm25,
+      pm10,
+      time: points.find(p => p.timestamp)?.timestamp || null,
+      localized: true,
+      source: 'Sensor.Community',
+      method: 'station-weighted',
+      coverage: points.length
+    };
+  }
+
+  async function fetchAirQualityPoint(lat, lon) {
     const endpoint = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=european_aqi,pm10,pm2_5`;
     const res = await fetch(endpoint, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) throw new Error('air-api');
     const payload = await res.json();
     return payload?.current || null;
+  }
+
+  async function fetchOpenMeteoLocalizedSnapshot(lat, lon) {
+    // Build a localized estimate using nearby points to avoid identical values
+    // across close-by parishes when the provider grid is coarse.
+    const latOffset = 0.045;
+    const lonOffset = 0.045 / Math.max(0.2, Math.cos((lat * Math.PI) / 180));
+    const samples = [
+      { lat, lon, weight: 0.4 },
+      { lat: lat + latOffset, lon, weight: 0.15 },
+      { lat: lat - latOffset, lon, weight: 0.15 },
+      { lat, lon: lon + lonOffset, weight: 0.15 },
+      { lat, lon: lon - lonOffset, weight: 0.15 }
+    ];
+
+    const results = await Promise.all(
+      samples.map(sample =>
+        fetchAirQualityPoint(sample.lat, sample.lon)
+          .then(current => ({ current, weight: sample.weight }))
+          .catch(() => ({ current: null, weight: sample.weight }))
+      )
+    );
+
+    const valid = results.filter(entry => entry.current && Number.isFinite(entry.current.european_aqi));
+    if (!valid.length) return null;
+
+    const sumWeights = valid.reduce((acc, entry) => acc + entry.weight, 0) || 1;
+    const weighted = (field) => {
+      let total = 0;
+      let totalW = 0;
+      valid.forEach(entry => {
+        const v = entry.current[field];
+        if (Number.isFinite(v)) {
+          total += v * entry.weight;
+          totalW += entry.weight;
+        }
+      });
+      if (!totalW) return null;
+      return total / totalW;
+    };
+
+    return {
+      european_aqi: weighted('european_aqi'),
+      pm2_5: weighted('pm2_5'),
+      pm10: weighted('pm10'),
+      time: valid[0].current.time,
+      localized: true,
+      source: 'Open-Meteo',
+      method: 'local-grid-blend',
+      coverage: valid.length,
+      sampleCount: samples.length,
+      confidence: Math.min(1, sumWeights)
+    };
+  }
+
+  async function fetchAirQualitySnapshot(lat, lon) {
+    // Try station-based data first for better parish-level accuracy, then fallback.
+    try {
+      const stationSnapshot = await fetchSensorCommunitySnapshot(lat, lon);
+      if (stationSnapshot) return stationSnapshot;
+    } catch (error) {
+      // Continue to fallback.
+    }
+    return fetchOpenMeteoLocalizedSnapshot(lat, lon);
   }
 
   function initResourceLiveMap() {
@@ -2817,14 +3010,16 @@
     const airUpdated = document.getElementById('resource-air-updated');
     if (!select || !frame || !externalLink || !featureButtons.length || !airPanel) return;
 
+    const mapLocations = getResourceMapLocations();
+
     const previous = select.value || 'lisboa';
     const previousFeature = select.dataset.feature || 'base';
-    select.innerHTML = LIVE_MAP_LOCATIONS.map(item => {
+    select.innerHTML = mapLocations.map(item => {
       const label = item.label[currentLang] || item.label.pt;
       return `<option value="${item.key}">${label}</option>`;
     }).join('');
 
-    if (LIVE_MAP_LOCATIONS.some(item => item.key === previous)) select.value = previous;
+    if (mapLocations.some(item => item.key === previous)) select.value = previous;
     select.dataset.feature = previousFeature;
 
     const setFeatureActive = (feature) => {
@@ -2840,7 +3035,7 @@
     };
 
     const updateMap = async () => {
-      const selected = LIVE_MAP_LOCATIONS.find(item => item.key === select.value) || LIVE_MAP_LOCATIONS[0];
+      const selected = mapLocations.find(item => item.key === select.value) || mapLocations[0];
       const feature = select.dataset.feature || 'base';
 
       if (feature === 'air') {
@@ -2854,7 +3049,9 @@
             airAqi.textContent = Number.isFinite(current.european_aqi) ? Math.round(current.european_aqi).toString() : '--';
             airPm25.textContent = Number.isFinite(current.pm2_5) ? `${current.pm2_5.toFixed(1)} µg/m3` : '--';
             airPm10.textContent = Number.isFinite(current.pm10) ? `${current.pm10.toFixed(1)} µg/m3` : '--';
-            airUpdated.textContent = current.time || '--';
+            const sourceLabel = current.source ? ` | ${current.source}` : '';
+            const methodLabel = current.localized ? ' | local estimate' : '';
+            airUpdated.textContent = `${current.time || '--'}${sourceLabel}${methodLabel}`;
           } else {
             setAirPending(false);
           }
